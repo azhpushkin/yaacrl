@@ -4,12 +4,13 @@
 
 #include "AudioFile.h"
 #include "spectrogram.h"
+#include "fingerprint.h"
 
 
 int main() {
     AudioFile<double> audioFile;
 
-    audioFile.load ("/home/maqquettex/projects/yaacrl/songs/knee_socks.wav");
+    audioFile.load ("/home/maqquettex/projects/yaacrl/songs/arabella_short.wav");
     audioFile.printSummary();
 
     if (1 != audioFile.getNumChannels()) {
@@ -18,7 +19,10 @@ int main() {
     }
     
     Spectrogram spec = gen_spectrogram(audioFile.samples[0]);
-    std::string asd;
+    std::cout << "Specgram generated, windows amount: " << spec.size() << std::endl;
+
+    auto peaks = find_peaks(spec);
+    std::cout << "Detected peaks: " << peaks.size() << std::endl;
     
     return 0;
 }

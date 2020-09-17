@@ -18,7 +18,7 @@ Spectrogram gen_spectrogram(std::vector<double> samples) {
     std::vector<double> window(WINDOW_SIZE, 0.0);
     // hanning function applied
     for (int i = 0; i < WINDOW_SIZE; ++i) {
-        window[i] = (1 - cos((2 * M_PI * i) / (WINDOW_SIZE - 1) ));
+        window[i] = (1 - cos((2 * M_PI * i) / (WINDOW_SIZE - 1) )) / 2;
     }
 
     int frames_amount = 1;
@@ -43,7 +43,7 @@ Spectrogram gen_spectrogram(std::vector<double> samples) {
         for (int i = 0; i < WINDOW_SIZE; i++) {
             cpx_from[i].i = 0.0;
             if (chunk_start + i < samples.size()) {
-                cpx_from[i].r = samples[chunk_start + i] * window[i];  // Do windowing
+                cpx_from[i].r = samples[chunk_start + i] ;  // Do windowing
             } else {
                 cpx_from[i].r = 0.0;  // we have read beyond the signal, so zero-pad it!
             }
