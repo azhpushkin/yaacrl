@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "AudioFile.h"
+#include "spectrogram.h"
 
 
 int main() {
@@ -15,8 +16,9 @@ int main() {
         std::cerr << "Detected number of channels is not supported!" << std::endl;
         std::abort();
     }
-
-    std::vector<double> samples = audioFile.samples[0];
-    std::cout << "Total samples amount: " << samples.size() << std::endl;
+    
+    Spectrogram spec = gen_spectrogram(audioFile.samples[0]);
+    std::string asd;
+    
     return 0;
 }
