@@ -55,3 +55,24 @@ void Storage::store_fingerprint(Fingerprint& fp) {
         freeReplyObject(reply);
     }
 }
+
+std::vector<std::string> Storage::get_matches(Fingerprint& fp) {
+    std::vector<std::string> matches;
+
+    
+    redisReply* reply;
+    for (auto const& hash:  fp.hashes) {
+        reply = (redisReply*)redisCommand(
+            (redisContext*)redis,
+            "GET hash:%b", hash.data(), hash.size()
+        );
+        if (reply == NULL) {
+            continue;
+        }
+
+        matches.emplace_back(reply->str, reply->len);
+
+        freeReplyObject(reply);
+    }
+    return matches;
+}

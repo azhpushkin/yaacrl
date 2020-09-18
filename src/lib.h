@@ -1,6 +1,9 @@
 #include <string>
+#include <set>
+#include <vector>
 #include "fingerprint.h"
 #include "spectrogram.h"
+
 
 class Fingerprint {
 public:
@@ -19,6 +22,7 @@ public:
     Storage();
     ~Storage();
     void store_fingerprint(Fingerprint& fp);
+    std::vector<std::string> get_matches(Fingerprint& fp);
 private:
     void* redis;
 };
