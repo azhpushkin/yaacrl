@@ -23,6 +23,9 @@ int main() {
 
     auto peaks = find_peaks(spec);
     std::cout << "Detected peaks: " << peaks.size() << std::endl;
+
+    auto hashes = generate_hashes(peaks);
+    std::cout << "Hashes generated: " << hashes.size() << std::endl;
     
     return 0;
 }
