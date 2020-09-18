@@ -2,9 +2,12 @@
 #include <iostream>
 #include <vector>
 
+#include "hiredis/hiredis.h"
 #include "AudioFile.h"
+
 #include "spectrogram.h"
 #include "fingerprint.h"
+#include "storage.h"
 
 
 int main() {
@@ -29,5 +32,16 @@ int main() {
               << ". Example:" << std::string(hashes[0].data(), 16)
               << std::endl;
     
+
+    redisContext *c = redisConnect("127.0.0.1", 6379);
+    if (c == NULL || c->err) {
+        std::cerr << "Error connecting to redis" << std::endl;
+    }
+
+    for (auto const& hash:  hashes) {
+        store_hash(c, hash, std::string("arabella"));
+    }
+    redisFree(c);
+
     return 0;
 }
