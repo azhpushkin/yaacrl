@@ -35,7 +35,7 @@ bool is_local_maximum(Spectrogram& spec, int window, int bin) {
     return true;
 }
 
-std::vector<Peak> find_peaks(Spectrogram spec) {
+std::vector<Peak> find_peaks(Spectrogram& spec) {
     std::vector<Peak> peaks;
 
     for (int window = 0; window < spec.size(); window++) {
@@ -53,8 +53,8 @@ std::vector<Peak> find_peaks(Spectrogram spec) {
     return peaks;
 }
 
-std::vector<Hash*> generate_hashes(std::vector<Peak> peaks) {
-    std::vector<Hash*> hashes;
+std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
+    std::vector<Hash> hashes;
 
     auto format_key = new int[3];
     for(int i = 0; i < peaks.size(); i++) {
@@ -70,12 +70,12 @@ std::vector<Hash*> generate_hashes(std::vector<Peak> peaks) {
             format_key[1] = std::get<1>(peaks[j]);  // freq 2
             format_key[2] = distance;  // window2 - window1
             
-            auto new_hash = new Hash();
+            Hash new_hash;
             MurmurHash3_x64_128(
                 format_key,
                 sizeof(int) * 3,
                 0,
-                new_hash->data()
+                new_hash.data()
             );
 
             hashes.push_back(new_hash);

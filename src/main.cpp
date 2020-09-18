@@ -25,7 +25,9 @@ int main() {
     std::cout << "Detected peaks: " << peaks.size() << std::endl;
 
     auto hashes = generate_hashes(peaks);
-    std::cout << "Hashes generated: " << hashes.size() << std::endl;
+    std::cout << "Hashes generated: " << hashes.size()
+              << ". Example:" << std::string(hashes[0].data(), 16)
+              << std::endl;
     
     return 0;
 }
