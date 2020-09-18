@@ -21,6 +21,7 @@ class Storage {
 public:
     Storage();
     ~Storage();
+    void store_fingerprint(Fingerprint&& fp);
     void store_fingerprint(Fingerprint& fp);
     std::vector<std::string> get_matches(Fingerprint& fp);
 private:

@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 #include <cstring>
 #include "hiredis/hiredis.h"
 #include "AudioFile.h"
@@ -43,9 +44,25 @@ Storage::~Storage() {
     redisFree((redisContext*)redis);
 }
 
+void Storage::store_fingerprint(Fingerprint&& fp) {
+    store_fingerprint(fp);
+}
 void Storage::store_fingerprint(Fingerprint& fp) {
+    std::cout << "Storing " << fp.hashes.size() << " for " << fp.name << std::endl;
+    redisReply* reply;
     for (auto const& hash:  fp.hashes) {
-        auto reply = redisCommand(
+        reply = (redisReply*)redisCommand(
+            (redisContext*)redis,
+            "GET hash:%b", hash.data(), hash.size()
+        );
+        if (reply->type != REDIS_REPLY_NIL) {
+            (redisReply*)redisCommand(
+                (redisContext*)redis,
+                "DEL hash:%b", hash.data(), hash.size()
+            );
+        }
+
+        reply = (redisReply*)redisCommand(
             (redisContext*)redis,
             "SET hash:%b %b", hash.data(), hash.size(), fp.name.c_str(), fp.name.length()
         );
@@ -59,7 +76,6 @@ void Storage::store_fingerprint(Fingerprint& fp) {
 std::vector<std::string> Storage::get_matches(Fingerprint& fp) {
     std::vector<std::string> matches;
 
-    
     redisReply* reply;
     for (auto const& hash:  fp.hashes) {
         reply = (redisReply*)redisCommand(
@@ -67,6 +83,9 @@ std::vector<std::string> Storage::get_matches(Fingerprint& fp) {
             "GET hash:%b", hash.data(), hash.size()
         );
         if (reply == NULL) {
+            continue;
+        }
+        if (reply->type == REDIS_REPLY_NIL) {
             continue;
         }
 
