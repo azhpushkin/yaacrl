@@ -32,9 +32,10 @@ int main() {
     // Match
 
 
-    std::string path2("/home/maqquettex/projects/yaacrl/songs/ara_1.wav");
+    std::string path2("/home/maqquettex/projects/yaacrl/songs/ara_3.wav");
 
     Fingerprint to_match = Fingerprint::fromWAV(path2);
+    std::cout << "Fingers amount: " << to_match.hashes.size() << std::endl;
 
     auto res = storage.get_matches(to_match);
     std::cout << "found matches: " << res.size() << std::endl;

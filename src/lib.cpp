@@ -16,7 +16,7 @@ Fingerprint Fingerprint::fromWAV(std::string path) {
 Fingerprint Fingerprint::fromWAV(std::string path, std::string name) {
     Fingerprint fp;
     fp.name = name;
-    AudioFile<double> audioFile;
+    AudioFile<float> audioFile;
 
     audioFile.load (path);
     audioFile.printSummary();
