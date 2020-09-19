@@ -23,7 +23,7 @@ public:
     ~Storage();
     void store_fingerprint(Fingerprint&& fp);
     void store_fingerprint(Fingerprint& fp);
-    std::vector<std::string> get_matches(Fingerprint& fp);
+    void get_matches(Fingerprint& fp);
 private:
     void* redis;
 };

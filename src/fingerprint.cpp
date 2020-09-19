@@ -7,10 +7,10 @@
 #include "MurmurHash3.h"
 
 
-#define LOC_BINS 20
-#define LOC_WINDOWS 20
-#define MIN_AMPLITUDE -30
-#define MAX_FAN 50
+#define LOC_BINS 10
+#define LOC_WINDOWS 10
+#define MIN_AMPLITUDE -10
+#define MAX_FAN 15
 
 
 bool is_local_maximum(Spectrogram& spec, int window, int bin) {
@@ -60,8 +60,9 @@ std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
     auto format_key = new int[3];
     for(int i = 0; i < peaks.size(); i++) {
         int c = 0;
-        for (int j = i + 1; (j < peaks.size() && c < MAX_FAN); j++, c++) {
+        for (int j = i + 1; (j < peaks.size() && c < MAX_FAN); j++) {
             auto distance = std::get<0>(peaks[j]) - std::get<0>(peaks[i]);
+            if (distance == 0) continue;
 
             format_key[0] = std::get<1>(peaks[i]);  // freq 1
             format_key[1] = std::get<1>(peaks[j]);  // freq 2
@@ -72,10 +73,13 @@ std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
                 format_key,
                 sizeof(int) * 3,
                 0,
-                new_hash.data()
+                std::get<0>(new_hash).data()
             );
 
+            std::get<1>(new_hash) = std::get<0>(peaks[i]);
+
             hashes.push_back(new_hash);
+            c++;
         }
     }
     

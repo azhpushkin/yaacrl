@@ -3,6 +3,7 @@
 #include <cstring>
 #include "hiredis/hiredis.h"
 #include "AudioFile.h"
+#include <algorithm>
 
 #include "fingerprint.h"
 #include "spectrogram.h"
@@ -53,34 +54,37 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     for (auto const& hash:  fp.hashes) {
         reply = (redisReply*)redisCommand(
             (redisContext*)redis,
-            "GET hash:%b", hash.data(), hash.size()
+            "GET hash:%b", std::get<0>(hash).data(), std::get<0>(hash).size()
         );
         if (reply->type != REDIS_REPLY_NIL) {
             (redisReply*)redisCommand(
                 (redisContext*)redis,
-                "DEL hash:%b", hash.data(), hash.size()
+                "DEL hash:%b", std::get<0>(hash).data(), std::get<0>(hash).size()
             );
         }
 
         reply = (redisReply*)redisCommand(
             (redisContext*)redis,
-            "SET hash:%b %b", hash.data(), hash.size(), fp.name.c_str(), fp.name.length()
+            "SET hash:%b %b", std::get<0>(hash).data(), std::get<0>(hash).size(), fp.name.c_str(), fp.name.length()
         );
-        if (reply == NULL) {
-            return;
-        }
+        freeReplyObject(reply);
+        reply = (redisReply*)redisCommand(
+            (redisContext*)redis,
+            "SET hash:%b:offset %d", std::get<0>(hash).data(), std::get<0>(hash).size(), std::get<1>(hash)
+        );
         freeReplyObject(reply);
     }
 }
-
-std::vector<std::string> Storage::get_matches(Fingerprint& fp) {
-    std::vector<std::string> matches;
+#define MMATCH std::tuple<std::string, int, int>
+void Storage::get_matches(Fingerprint& fp) {
+    std::vector<MMATCH> matches;
 
     redisReply* reply;
     for (auto const& hash:  fp.hashes) {
+
         reply = (redisReply*)redisCommand(
             (redisContext*)redis,
-            "GET hash:%b", hash.data(), hash.size()
+            "GET hash:%b", std::get<0>(hash).data(), std::get<0>(hash).size()
         );
         if (reply == NULL) {
             continue;
@@ -88,10 +92,27 @@ std::vector<std::string> Storage::get_matches(Fingerprint& fp) {
         if (reply->type == REDIS_REPLY_NIL) {
             continue;
         }
-
-        matches.emplace_back(reply->str, reply->len);
-
+        MMATCH match;
+        std::get<0>(match) = std::string(reply->str, reply->len);
+        
         freeReplyObject(reply);
+
+        reply = (redisReply*)redisCommand(
+            (redisContext*)redis,
+            "GET hash:%b:offset", std::get<0>(hash).data(), std::get<0>(hash).size()
+        );
+        std::get<1>(match) = std::stoi(std::string(reply->str, reply->len));
+        std::get<2>(match) = std::get<1>(hash);
+        freeReplyObject(reply);
+        matches.push_back(match);
     }
-    return matches;
+    std::cout << "Matches: "<< matches.size() << std::endl;
+    std::sort(matches.begin(), matches.end(),
+        [](const MMATCH& a, MMATCH& b) -> bool
+        { return std::get<0>(a) > std::get<0>(b); }
+        );
+    for (auto const& v: matches) {
+        std::cout << std::get<1>(v) - std::get<2>(v) << " || " << std::get<0>(v) << std::endl;
+    }
+
 }

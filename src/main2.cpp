@@ -29,4 +29,14 @@ int main() {
         file << "\n";
     }
     file.close();
+
+
+    std::ofstream file2("/home/maqquettex/projects/dejavu-test/peaks.txt");
+    
+    auto peaks = find_peaks(s);
+    std::cout << "Found peaks: " << peaks.size() << std::endl;
+    for (auto const& p: peaks) {
+        file2 << std::get<0>(p) << "," << std::get<1>(p) << std::endl;
+    }
+    file2.close();
 }

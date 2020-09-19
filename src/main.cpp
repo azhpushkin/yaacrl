@@ -32,27 +32,13 @@ int main() {
     // Match
 
 
-    std::string path2("/home/maqquettex/projects/yaacrl/songs/ara_3.wav");
+    std::string path2("/home/maqquettex/projects/yaacrl/songs/ara_test_good.wav");
 
     Fingerprint to_match = Fingerprint::fromWAV(path2);
     std::cout << "Fingers amount: " << to_match.hashes.size() << std::endl;
 
-    auto res = storage.get_matches(to_match);
-    std::cout << "found matches: " << res.size() << std::endl;
-
-    std::map<std::string, int> what;
-    for (auto const& x: res) {
-        // std::cout << "song: " << x << std::endl;
-        auto q = what.find(x);
-        if (q == what.end()) {
-            what[x] = 1;
-        } else {
-            what[x] = q->second + 1;
-        }
-    }
-    for (auto const& pair: what) {
-        std::cout << pair.first << " = " << pair.second << std::endl;
-    }
+    storage.get_matches(to_match);
+    
 
     // return 0;
 }
