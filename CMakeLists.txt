@@ -5,3 +5,8 @@ include_directories(PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
 
 add_subdirectory(src)
+
+
+include_directories(src)
+add_executable(yaacrl-test test.cpp)
+target_link_libraries(yaacrl-test yaacrl)
