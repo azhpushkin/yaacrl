@@ -4,7 +4,7 @@
 #include <fstream>
 
 #include "hiredis/hiredis.h"
-#include "AudioFile.h"
+#include "vendor/AudioFile.h"
 
 #include "spectrogram.h"
 #include "fingerprint.h"

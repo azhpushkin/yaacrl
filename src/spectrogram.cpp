@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 #define kiss_fft_scalar float
-#include "kissfft/kiss_fft.h"
+#include "vendor/kiss_fft.h"
 
 #include "spectrogram.h"
 

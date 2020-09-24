@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cstring>
 #include "hiredis/hiredis.h"
-#include "AudioFile.h"
+#include "vendor/AudioFile.h"
 #include <algorithm>
 
 #include "fingerprint.h"

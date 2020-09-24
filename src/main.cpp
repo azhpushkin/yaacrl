@@ -1,20 +1,13 @@
-#include <cstring>
 #include <iostream>
-#include <vector>
+#include <string>
 
-#include "hiredis/hiredis.h"
-#include "AudioFile.h"
-
-#include "spectrogram.h"
-#include "fingerprint.h"
 #include "lib.h"
-
-#include <map>
 
 
 int main() {
     Storage storage;
 
+        
     // std::string arabella("/home/maqquettex/projects/yaacrl/songs/arabella.wav");
     // storage.store_fingerprint(Fingerprint::fromWAV(arabella));
 
@@ -32,7 +25,7 @@ int main() {
     // Match
 
 
-    std::string path2("/home/maqquettex/projects/yaacrl/songs/ara_test_good.wav");
+    std::string path2("/home/maqquettex/projects/yaacrl/songs/ara_1.wav");
 
     Fingerprint to_match = Fingerprint::fromWAV(path2);
     std::cout << "Fingers amount: " << to_match.hashes.size() << std::endl;

@@ -4,13 +4,13 @@
 #include "spectrogram.h"
 #include "fingerprint.h"
 
-#include "MurmurHash3.h"
+#include "vendor/MurmurHash3.h"
 
 
-#define LOC_BINS 10
-#define LOC_WINDOWS 10
+#define LOC_BINS 40
+#define LOC_WINDOWS 20
 #define MIN_AMPLITUDE -10
-#define MAX_FAN 15
+#define MAX_FAN 25
 
 
 bool is_local_maximum(Spectrogram& spec, int window, int bin) {
