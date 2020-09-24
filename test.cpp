@@ -1,34 +1,66 @@
 #include <iostream>
 #include <string>
+#include <filesystem>
+#include <vector>
 
 #include "lib.h"
 
 
+namespace fs = std::filesystem;
+
 int main() {
+    std::vector<fs::path> songs;
+    std::vector<fs::path> test_fragments;
+    
+    // TODO: CLI arguments needed instead of hardcode
+    auto home_path = std::string(getenv("HOME"));
+    const fs::path workdir = home_path + "/projects/yaacrl/songs";
+    
+    for(auto& p: fs::directory_iterator(workdir)) {
+        std::string filename = p.path().filename();
+        if (filename.find("skip_") == 0) {
+            continue;
+        }
+        else if (filename.find("test_") == 0) {
+            test_fragments.push_back(p);
+        } else {
+            songs.push_back(p);
+        }
+    }
+
     Storage storage;
+    std::cout << "### Upload songs" << std::endl;
+    for (auto& song: songs) {
+        std::cout << "Processing " << song.filename() << std::endl;
+        auto fprint = Fingerprint::fromWAV(song);
+        std::cout << "  -> " << fprint.hashes.size() << " hashes created" << std::endl;
+        storage.store_fingerprint(fprint);
+        std::cout << "  -> fingeprint saved" << std::endl;
+    }
 
-    std::string arabella("/home/maqquettex/projects/yaacrl/songs/arabella.wav");
-    storage.store_fingerprint(Fingerprint::fromWAV(arabella));
+    std::cout << "### Test fragments" << std::endl;
+    for (auto& item: test_fragments) {
+        std::cout << "Check " << item.filename() << std::endl;
+        auto fprint = Fingerprint::fromWAV(item);
+        std::cout << "  -> " << fprint.hashes.size() << " hashes detected" << std::endl;
+        auto matches = storage.get_matches(fprint);
+        std::cout << "  -> " << matches.size() << " matches found" << std::endl;
+    }
+    
 
-    std::string dll("/home/maqquettex/projects/yaacrl/songs/dance_little_liar.wav");
-    storage.store_fingerprint(Fingerprint::fromWAV(dll));
+    return 0;
 
-    std::string knee_socks("/home/maqquettex/projects/yaacrl/songs/knee_socks.wav");
-    storage.store_fingerprint(Fingerprint::fromWAV(knee_socks));
-
-    std::string one_for("/home/maqquettex/projects/yaacrl/songs/one_for_the_road.wav");
-    storage.store_fingerprint(Fingerprint::fromWAV(one_for));
-
+   
     return 0;
     // Match
 
 
-    std::string path2("/home/maqquettex/projects/yaacrl/songs/a1.wav");
+    // std::string path2("/home/maqquettex/projects/yaacrl/songs/a1.wav");
 
-    Fingerprint to_match = Fingerprint::fromWAV(path2);
-    std::cout << "Fingers amount: " << to_match.hashes.size() << std::endl;
+    // Fingerprint to_match = 
+    // std::cout << "Fingers amount: " << to_match.hashes.size() << std::endl;
 
-    storage.get_matches(to_match);
+    // 
     
 
     // return 0;

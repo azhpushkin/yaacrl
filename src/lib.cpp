@@ -20,7 +20,6 @@ Fingerprint Fingerprint::fromWAV(std::string path, std::string name) {
     AudioFile<float> audioFile;
 
     audioFile.load (path);
-    audioFile.printSummary();
 
     if (1 != audioFile.getNumChannels()) {
         std::cerr << "Detected number of channels is not supported!" << std::endl;
@@ -49,7 +48,6 @@ void Storage::store_fingerprint(Fingerprint&& fp) {
     store_fingerprint(fp);
 }
 void Storage::store_fingerprint(Fingerprint& fp) {
-    std::cout << "Storing " << fp.hashes.size() << " for " << fp.name << std::endl;
     redisReply* reply;
     for (auto const& hash:  fp.hashes) {
         reply = (redisReply*)redisCommand(
@@ -75,9 +73,9 @@ void Storage::store_fingerprint(Fingerprint& fp) {
         freeReplyObject(reply);
     }
 }
-#define MMATCH std::tuple<std::string, int, int>
-void Storage::get_matches(Fingerprint& fp) {
-    std::vector<MMATCH> matches;
+
+std::vector<Match> Storage::get_matches(Fingerprint& fp) {
+    std::vector<Match> matches;
 
     redisReply* reply;
     for (auto const& hash:  fp.hashes) {
@@ -92,27 +90,21 @@ void Storage::get_matches(Fingerprint& fp) {
         if (reply->type == REDIS_REPLY_NIL) {
             continue;
         }
-        MMATCH match;
-        std::get<0>(match) = std::string(reply->str, reply->len);
+        Match new_match;
+        new_match.song_name = std::string(reply->str, reply->len);
         
         freeReplyObject(reply);
-
         reply = (redisReply*)redisCommand(
             (redisContext*)redis,
             "GET hash:%b:offset", std::get<0>(hash).data(), std::get<0>(hash).size()
         );
-        std::get<1>(match) = std::stoi(std::string(reply->str, reply->len));
-        std::get<2>(match) = std::get<1>(hash);
+        int original_offset = std::stoi(std::string(reply->str, reply->len));
+        int current_offset = std::get<1>(hash);
         freeReplyObject(reply);
-        matches.push_back(match);
+
+        new_match.offset = original_offset - current_offset;
+        matches.push_back(new_match);
     }
-    std::cout << "Matches: "<< matches.size() << std::endl;
-    std::sort(matches.begin(), matches.end(),
-        [](const MMATCH& a, MMATCH& b) -> bool
-        { return std::get<0>(a) > std::get<0>(b); }
-        );
-    for (auto const& v: matches) {
-        std::cout << std::get<1>(v) - std::get<2>(v) << " || " << std::get<0>(v) << std::endl;
-    }
+    return matches;
 
 }
