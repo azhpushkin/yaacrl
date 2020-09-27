@@ -47,29 +47,21 @@ Storage::~Storage() {
 void Storage::store_fingerprint(Fingerprint&& fp) {
     store_fingerprint(fp);
 }
+
 void Storage::store_fingerprint(Fingerprint& fp) {
     redisReply* reply;
     for (auto const& hash:  fp.hashes) {
-        reply = (redisReply*)redisCommand(
+        redisAppendCommand(
             (redisContext*)redis,
-            "GET hash:%b", std::get<0>(hash).data(), std::get<0>(hash).size()
+            "SADD hash:%b %b", HASH_DATA(hash), HASH_SIZE, fp.name.c_str(), fp.name.length()
         );
-        if (reply->type != REDIS_REPLY_NIL) {
-            (redisReply*)redisCommand(
-                (redisContext*)redis,
-                "DEL hash:%b", std::get<0>(hash).data(), std::get<0>(hash).size()
-            );
-        }
-
-        reply = (redisReply*)redisCommand(
+        redisAppendCommand(
             (redisContext*)redis,
-            "SET hash:%b %b", std::get<0>(hash).data(), std::get<0>(hash).size(), fp.name.c_str(), fp.name.length()
+            "SET hash:%b:offset %d", HASH_DATA(hash), HASH_SIZE, HASH_OFFSET(hash)
         );
+        redisGetReply((redisContext*)redis, (void **) &reply);
         freeReplyObject(reply);
-        reply = (redisReply*)redisCommand(
-            (redisContext*)redis,
-            "SET hash:%b:offset %d", std::get<0>(hash).data(), std::get<0>(hash).size(), std::get<1>(hash)
-        );
+        redisGetReply((redisContext*)redis, (void **) &reply);
         freeReplyObject(reply);
     }
 }
@@ -82,7 +74,7 @@ std::vector<Match> Storage::get_matches(Fingerprint& fp) {
 
         reply = (redisReply*)redisCommand(
             (redisContext*)redis,
-            "GET hash:%b", std::get<0>(hash).data(), std::get<0>(hash).size()
+            "SMEMBERS hash:%b", HASH_DATA(hash), HASH_SIZE
         );
         if (reply == NULL) {
             continue;

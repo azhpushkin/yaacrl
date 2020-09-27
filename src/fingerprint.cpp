@@ -37,20 +37,40 @@ bool is_local_maximum(Spectrogram& spec, int window, int bin) {
 
 std::vector<Peak> find_peaks(Spectrogram& spec) {
     std::vector<Peak> peaks;
+    bool* x = new bool[BINS_AMOUNT * spec.size()];
+    std::fill_n(x, BINS_AMOUNT * spec.size(), true);
 
     for (int window = 0; window < spec.size(); window++) {
         for (int bin = 0; bin < BINS_AMOUNT; bin++) {
             float value = spec[window][bin];
-            if (value < MIN_AMPLITUDE || value == 0.0) {
+            if (!x[window*BINS_AMOUNT + bin]) {
+                continue;
+            } 
+            if (value < MIN_AMPLITUDE) {
                 continue;
             }
             
             if (is_local_maximum(spec, window, bin) ) {
                 peaks.emplace_back(window, bin);
+
+                for (int w_shift = -LOC_WINDOWS; w_shift < LOC_WINDOWS; w_shift++) {
+                    if (window + w_shift < 0 || window + w_shift >= spec.size()) 
+                    { continue; }
+
+                    for (int b_shift = -LOC_BINS; b_shift < LOC_BINS; b_shift++) {
+                        if (bin + b_shift < 0 || bin + b_shift >= BINS_AMOUNT) 
+                        { continue; }
+
+                        if (w_shift == 0 && b_shift == 0)
+                        { continue; }
+
+                        x[(window+w_shift)*BINS_AMOUNT + bin+b_shift] = false;
+                    }
+                }
             }
         }
     }
-
+    delete x;
     return peaks;
 }
 

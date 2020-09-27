@@ -49,18 +49,6 @@ int main() {
     
 
     return 0;
-
-   
-    return 0;
-    // Match
-
-
-    // std::string path2("/home/maqquettex/projects/yaacrl/songs/a1.wav");
-
-    // Fingerprint to_match = 
-    // std::cout << "Fingers amount: " << to_match.hashes.size() << std::endl;
-
-    // 
     
 
     // return 0;
