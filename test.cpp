@@ -2,6 +2,8 @@
 #include <string>
 #include <filesystem>
 #include <vector>
+#include <map>
+#include <tuple>
 
 #include "lib.h"
 
@@ -44,12 +46,14 @@ int main() {
         auto fprint = Fingerprint::fromWAV(item);
         std::cout << "  -> " << fprint.hashes.size() << " hashes detected" << std::endl;
         auto matches = storage.get_matches(fprint);
-        std::cout << "  -> " << matches.size() << " matches found" << std::endl;
+        std::cout << "  -> " << " Match results: " <<  std::endl;
+        for (auto& pair: matches) {
+            std::cout << "    * " << std::get<0>(pair) << ": " << std::get<1>(pair) * 100 << "%" << std::endl;
+        }
+
     }
     
 
     return 0;
     
-
-    // return 0;
 }

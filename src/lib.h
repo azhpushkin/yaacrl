@@ -4,12 +4,6 @@
 #include "fingerprint.h"
 #include "spectrogram.h"
 
-class Match {
-public:
-    std::string song_name;
-    int offset;
-};
-
 class Fingerprint {
 public:
     std::string name;
@@ -28,7 +22,7 @@ public:
     ~Storage();
     void store_fingerprint(Fingerprint&& fp);
     void store_fingerprint(Fingerprint& fp);
-    std::vector<Match> get_matches(Fingerprint& fp);
+    std::map<std::string, float> get_matches(Fingerprint& fp);
 private:
     void* redis;
 };

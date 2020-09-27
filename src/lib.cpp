@@ -1,14 +1,18 @@
 #include <string>
+#include <map>
+#include <utility>
 #include <iostream>
 #include <cstring>
+#include <algorithm>
+
 #include "hiredis/hiredis.h"
 #include "vendor/AudioFile.h"
-#include <algorithm>
 
 #include "fingerprint.h"
 #include "spectrogram.h"
-
 #include "lib.h"
+
+#define CONFIDENCE 2  // at least 2 simult for a match
 
 Fingerprint Fingerprint::fromWAV(std::string path) {
     return Fingerprint::fromWAV(path, path);
@@ -66,7 +70,16 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     }
 }
 
-std::vector<Match> Storage::get_matches(Fingerprint& fp) {
+
+// Probably should not be here, IDK
+class Match {
+public:
+    std::string song_name;
+    int offset;
+};
+
+
+std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     std::vector<Match> matches;
 
     redisReply* reply;
@@ -79,24 +92,52 @@ std::vector<Match> Storage::get_matches(Fingerprint& fp) {
         if (reply == NULL) {
             continue;
         }
-        if (reply->type == REDIS_REPLY_NIL) {
+        if (reply->type != REDIS_REPLY_ARRAY) {
             continue;
         }
-        Match new_match;
-        new_match.song_name = std::string(reply->str, reply->len);
+        for (int i = 0; i < reply->elements; i++) {
+            auto r = reply->element[i];
+            Match new_match;
+            new_match.song_name = std::string(r->str, r->len);
+
+            auto offset_reply = (redisReply*)redisCommand(
+                (redisContext*)redis,
+                "GET hash:%b:offset", HASH_DATA(hash), HASH_SIZE
+            );
+            int original_offset = std::stoi(std::string(offset_reply->str, offset_reply->len));
+            int current_offset = HASH_OFFSET(hash);
+            freeReplyObject(offset_reply);
+
+            new_match.offset = original_offset - current_offset;
+            matches.push_back(new_match);
+        }
+
+        freeReplyObject(reply);
         
-        freeReplyObject(reply);
-        reply = (redisReply*)redisCommand(
-            (redisContext*)redis,
-            "GET hash:%b:offset", std::get<0>(hash).data(), std::get<0>(hash).size()
-        );
-        int original_offset = std::stoi(std::string(reply->str, reply->len));
-        int current_offset = std::get<1>(hash);
-        freeReplyObject(reply);
-
-        new_match.offset = original_offset - current_offset;
-        matches.push_back(new_match);
     }
-    return matches;
+    
+    std::map<std::pair<int, std::string>, int> grouped_matches;
+    for(auto& match: matches) {
+        std::pair<int, std::string> pair = std::make_pair(match.offset, match.song_name);
 
+        grouped_matches[pair]++;
+    }
+
+    std::map<std::string, int> songs_matches;
+    for (auto& pair: grouped_matches) {
+        auto amount = std::get<1>(pair);
+        auto song = std::get<1>( std::get<0>(pair) );
+        if (amount < CONFIDENCE) {
+            continue; 
+        }
+        
+        songs_matches[song] += amount;
+    }
+
+    std::map<std::string, float> res;
+    for(auto& pair: songs_matches) {
+        res[std::get<0>(pair)] = std::get<1>(pair) / (float) matches.size();
+    }
+
+    return res;
 }
