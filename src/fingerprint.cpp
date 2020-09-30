@@ -1,5 +1,4 @@
 #include <vector>
-#include <tuple>
 
 #include "spectrogram.h"
 #include "fingerprint.h"
