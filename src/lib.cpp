@@ -14,26 +14,40 @@
 
 #define CONFIDENCE 2  // at least 2 simult for a match
 
-Fingerprint Fingerprint::fromWAV(std::string path) {
-    return Fingerprint::fromWAV(path, path);
+using namespace yaacrl;
+
+WAVFile::WAVFile(std::string path_): path(path_), name(path_) {}
+WAVFile::WAVFile(std::string path_, std::string name_): path(path_), name(name_) {}
+
+MP3File::MP3File(std::string path_): path(path_), name(path_) {}
+MP3File::MP3File(std::string path_, std::string name_): path(path_), name(name_) {}
+
+
+Fingerprint::Fingerprint(const WAVFile& file) {
+    this->name = file.name;
+    this->process(file.path);
 }
 
-Fingerprint Fingerprint::fromWAV(std::string path, std::string name) {
-    Fingerprint fp;
-    fp.name = name;
+// TODO: throw exception for mp3 file
+Fingerprint::Fingerprint(const MP3File& file) {
+    this->name = file.name;
+    this->process(file.path);
+}
+
+void Fingerprint::process(std::string path) {
     AudioFile<float> audioFile;
 
     audioFile.load (path);
 
     if (1 != audioFile.getNumChannels()) {
+        // TODO: change to logging
         std::cerr << "Detected number of channels is not supported!" << std::endl;
         std::abort();
     }
     
-    fp.spec = gen_spectrogram(audioFile.samples[0]);
-    fp.peaks = find_peaks(fp.spec);
-    fp.hashes = generate_hashes(fp.peaks);
-    return fp;
+    this->spec = gen_spectrogram(audioFile.samples[0]);
+    this->peaks = find_peaks(this->spec);
+    this->hashes = generate_hashes(this->peaks);
 }
 
 Storage::Storage() {

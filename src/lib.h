@@ -5,15 +5,33 @@
 #include "fingerprint.h"
 #include "spectrogram.h"
 
+
+namespace yaacrl {
+
+struct WAVFile {
+    WAVFile(std::string path);
+    WAVFile(std::string path, std::string name);
+    std::string path;
+    std::string name;
+};
+
+struct MP3File {
+    MP3File(std::string path);
+    MP3File(std::string path, std::string name);
+    std::string path;
+    std::string name;
+};
+
 class Fingerprint {
 public:
+    Fingerprint(const WAVFile& file);
+    Fingerprint(const MP3File& file);
     std::string name;
     Spectrogram spec;
     std::vector<Peak> peaks;
     std::vector<Hash> hashes;
-
-    static Fingerprint fromWAV(std::string path);
-    static Fingerprint fromWAV(std::string path, std::string name);
+private:
+    void process(std::string path);
 };
 
 
@@ -27,3 +45,5 @@ public:
 private:
     void* redis;
 };
+
+}  // end namespace

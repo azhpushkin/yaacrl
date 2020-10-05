@@ -8,6 +8,7 @@
 
 
 namespace fs = std::filesystem;
+using namespace yaacrl;
 
 int main() {
     std::vector<fs::path> songs;
@@ -33,7 +34,7 @@ int main() {
     std::cout << "### Upload songs" << std::endl;
     for (auto& song: songs) {
         std::cout << "Processing " << song.filename() << std::endl;
-        auto fprint = Fingerprint::fromWAV(song);
+        auto fprint = Fingerprint(WAVFile(song));
         std::cout << "  -> " << fprint.hashes.size() << " hashes created" << std::endl;
         storage.store_fingerprint(fprint);
         std::cout << "  -> fingeprint saved" << std::endl;
@@ -42,7 +43,7 @@ int main() {
     std::cout << "### Test fragments" << std::endl;
     for (auto& item: test_fragments) {
         std::cout << "Check " << item.filename() << std::endl;
-        auto fprint = Fingerprint::fromWAV(item);
+        auto fprint = Fingerprint(WAVFile(item));
         std::cout << "  -> " << fprint.hashes.size() << " hashes detected" << std::endl;
         auto matches = storage.get_matches(fprint);
         std::cout << "  -> " << " Match results: " <<  std::endl;
