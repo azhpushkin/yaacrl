@@ -14,12 +14,20 @@ set(SOURCES
     src/spectrogram.cpp
     src/fingerprint.cpp)
 
+include_directories(yaacrl PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
+# Shared library
 add_library(yaacrl SHARED ${SOURCES})
+set_property(TARGET yaacrl PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(yaacrl hiredis)
-target_include_directories(yaacrl PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
+
+# Static library, compiles with static hiredis library submodule 
+add_subdirectory(hiredis)
+add_library(yaacrl-static STATIC ${SOURCES})
+target_link_libraries(yaacrl hiredis_static)
 
 
 # Test program target
 add_executable(yaacrl-test test.cpp)
 target_link_libraries(yaacrl-test yaacrl)
-target_include_directories(yaacrl PUBLIC ${PROJECT_SOURCE_DIR}/include)
