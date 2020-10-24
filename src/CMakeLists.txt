@@ -6,7 +6,7 @@ set(VENDOR_SOURCES
     vendor/MurmurHash3.cpp)
 set(SOURCES
     ${VENDOR_SOURCES}
-    lib.cpp
+    yaacrl.cpp
     spectrogram.cpp
     fingerprint.cpp)
 

@@ -10,7 +10,7 @@
 
 #include "fingerprint.h"
 #include "spectrogram.h"
-#include "lib.h"
+#include "yaacrl.h"
 
 #define CONFIDENCE 2  // at least 2 simult for a match
 
