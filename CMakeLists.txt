@@ -3,6 +3,7 @@ project(yaacrl VERSION 0.1.0)
 
 # std::filesystem from C++17 is used
 set(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Main shared library target
 set(VENDOR_SOURCES
@@ -18,7 +19,6 @@ include_directories(yaacrl PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 # Shared library
 add_library(yaacrl SHARED ${SOURCES})
-set_property(TARGET yaacrl PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(yaacrl hiredis)
 
 
