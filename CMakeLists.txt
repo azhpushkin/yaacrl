@@ -22,12 +22,10 @@ add_library(yaacrl SHARED ${SOURCES})
 target_link_libraries(yaacrl hiredis)
 
 
-# Static library, compiles with static hiredis library submodule 
-add_subdirectory(hiredis)
+# Static library, needs manual linking with hiredis
 add_library(yaacrl-static STATIC ${SOURCES})
-target_link_libraries(yaacrl hiredis_static)
-
 
 # Test program target
 add_executable(yaacrl-test test.cpp)
-target_link_libraries(yaacrl-test yaacrl)
+target_link_libraries(yaacrl-test yaacrl-static)
+target_link_libraries(yaacrl-test hiredis)
