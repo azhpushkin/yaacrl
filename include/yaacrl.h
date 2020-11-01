@@ -2,6 +2,7 @@
 #include <set>
 #include <vector>
 #include <map>
+
 #include "fingerprint.h"
 #include "spectrogram.h"
 
@@ -43,7 +44,7 @@ public:
     void store_fingerprint(Fingerprint& fp);
     std::map<std::string, float> get_matches(Fingerprint& fp);
 private:
-    void* redis;
+    void* db;
 };
 
 }  // end namespace

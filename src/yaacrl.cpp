@@ -5,14 +5,17 @@
 #include <cstring>
 #include <algorithm>
 
-#include "hiredis/hiredis.h"
+#include "vendor/sqlite3.h"
 #include "vendor/AudioFile.h"
 
 #include "fingerprint.h"
 #include "spectrogram.h"
 #include "yaacrl.h"
 
+#include "vendor/fmt.h"
+
 #define CONFIDENCE 2  // at least 2 simult for a match
+#define DB_CON (sqlite3*)db
 
 using namespace yaacrl;
 
@@ -51,15 +54,39 @@ void Fingerprint::process(std::string path) {
 }
 
 Storage::Storage() {
-    redis = redisConnect("127.0.0.1", 6379);
-    if (redis == NULL || ((redisContext*)redis)->err) {
-        std::cerr << "Error connecting to redis" << std::endl;
+    int rc;
+    char *zErrMsg;
+    std::string sql;
+    
+    rc = sqlite3_open(":memory:", (sqlite3**)(&db));
+    if ( rc ) {
+        std::cerr << "Error creating SQLite database: " << sqlite3_errmsg(DB_CON) << std::endl;
         std::abort();
+    }
+
+    sql = R"(
+        create table fingerprints (
+            hash TEXT NOT NULL,
+            offset INT NOT NULL,
+            song TEXT NOT NULL
+        );
+    )";
+    rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &zErrMsg);
+    if( rc != SQLITE_OK ){
+        std::cerr << "Error: " << zErrMsg << std::endl;
+    }
+
+    sql = R"(
+        create index hash_index on fingerprints(hash);
+    )";
+    rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &zErrMsg);
+    if( rc != SQLITE_OK ){
+        std::cerr << "Error: " << zErrMsg << std::endl;
     }
 }
 
 Storage::~Storage() {
-    redisFree((redisContext*)redis);
+    sqlite3_close(DB_CON);
 }
 
 void Storage::store_fingerprint(Fingerprint&& fp) {
@@ -67,20 +94,19 @@ void Storage::store_fingerprint(Fingerprint&& fp) {
 }
 
 void Storage::store_fingerprint(Fingerprint& fp) {
-    redisReply* reply;
+    int rc;
+    char* errMsg;
+
     for (auto const& hash:  fp.hashes) {
-        redisAppendCommand(
-            (redisContext*)redis,
-            "SADD hash:%b %b", HASH_DATA(hash), HASH_SIZE, fp.name.c_str(), fp.name.length()
+        auto sql_str = fmt::format(
+            "insert into fingerprints (hash, offset, song) values ({}, {}, '{}')",
+            HASH_DATA(hash), HASH_OFFSET(hash), fp.name
         );
-        redisAppendCommand(
-            (redisContext*)redis,
-            "SET hash:%b:offset %d", HASH_DATA(hash), HASH_SIZE, HASH_OFFSET(hash)
-        );
-        redisGetReply((redisContext*)redis, (void **) &reply);
-        freeReplyObject(reply);
-        redisGetReply((redisContext*)redis, (void **) &reply);
-        freeReplyObject(reply);
+
+        rc = sqlite3_exec(DB_CON, sql_str.c_str(), NULL, 0, &errMsg);
+        if( rc != SQLITE_OK ){
+            std::cerr << "Error: " << errMsg << std::endl;
+        }
     }
 }
 
@@ -96,39 +122,39 @@ public:
 std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     std::vector<Match> matches;
 
-    redisReply* reply;
-    for (auto const& hash:  fp.hashes) {
+    // redisReply* reply;
+    // for (auto const& hash:  fp.hashes) {
 
-        reply = (redisReply*)redisCommand(
-            (redisContext*)redis,
-            "SMEMBERS hash:%b", HASH_DATA(hash), HASH_SIZE
-        );
-        if (reply == NULL) {
-            continue;
-        }
-        if (reply->type != REDIS_REPLY_ARRAY) {
-            continue;
-        }
-        for (int i = 0; i < reply->elements; i++) {
-            auto r = reply->element[i];
-            Match new_match;
-            new_match.song_name = std::string(r->str, r->len);
+    //     reply = (redisReply*)redisCommand(
+    //         (redisContext*)redis,
+    //         "SMEMBERS hash:%b", HASH_DATA(hash), HASH_SIZE
+    //     );
+    //     if (reply == NULL) {
+    //         continue;
+    //     }
+    //     if (reply->type != REDIS_REPLY_ARRAY) {
+    //         continue;
+    //     }
+    //     for (int i = 0; i < reply->elements; i++) {
+    //         auto r = reply->element[i];
+    //         Match new_match;
+    //         new_match.song_name = std::string(r->str, r->len);
 
-            auto offset_reply = (redisReply*)redisCommand(
-                (redisContext*)redis,
-                "GET hash:%b:offset", HASH_DATA(hash), HASH_SIZE
-            );
-            int original_offset = std::stoi(std::string(offset_reply->str, offset_reply->len));
-            int current_offset = HASH_OFFSET(hash);
-            freeReplyObject(offset_reply);
+    //         auto offset_reply = (redisReply*)redisCommand(
+    //             (redisContext*)redis,
+    //             "GET hash:%b:offset", HASH_DATA(hash), HASH_SIZE
+    //         );
+    //         int original_offset = std::stoi(std::string(offset_reply->str, offset_reply->len));
+    //         int current_offset = HASH_OFFSET(hash);
+    //         freeReplyObject(offset_reply);
 
-            new_match.offset = original_offset - current_offset;
-            matches.push_back(new_match);
-        }
+    //         new_match.offset = original_offset - current_offset;
+    //         matches.push_back(new_match);
+    //     }
 
-        freeReplyObject(reply);
+    //     freeReplyObject(reply);
         
-    }
+    // }
     
     std::map<std::pair<int, std::string>, int> grouped_matches;
     for(auto& match: matches) {
