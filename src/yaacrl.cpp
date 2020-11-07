@@ -58,7 +58,7 @@ Storage::Storage() {
     char *zErrMsg;
     std::string sql;
     
-    rc = sqlite3_open(":memory:", (sqlite3**)(&db));
+    rc = sqlite3_open("file.sqlite", (sqlite3**)(&db));
     if ( rc ) {
         std::cerr << "Error creating SQLite database: " << sqlite3_errmsg(DB_CON) << std::endl;
         std::abort();
@@ -66,7 +66,7 @@ Storage::Storage() {
 
     sql = R"(
         create table fingerprints (
-            hash TEXT NOT NULL,
+            hash BLOB NOT NULL,
             offset INT NOT NULL,
             song TEXT NOT NULL
         );
@@ -97,17 +97,47 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     int rc;
     char* errMsg;
 
-    for (auto const& hash:  fp.hashes) {
-        auto sql_str = fmt::format(
-            "insert into fingerprints (hash, offset, song) values ({}, {}, '{}')",
-            HASH_DATA(hash), HASH_OFFSET(hash), fp.name
-        );
+    sqlite3_exec(DB_CON, "BEGIN TRANSACTION;", NULL, NULL, NULL);
 
-        rc = sqlite3_exec(DB_CON, sql_str.c_str(), NULL, 0, &errMsg);
-        if( rc != SQLITE_OK ){
-            std::cerr << "Error: " << errMsg << std::endl;
-        }
+    sqlite3_stmt *stmt = NULL;
+    rc = sqlite3_prepare(
+        DB_CON,
+        "INSERT INTO fingerprints (hash, offset, song) VALUES(?, ?, ?)",
+        -1, &stmt, NULL
+    );
+    if (rc != SQLITE_OK) {
+        std::cerr << "prepare failed: " << sqlite3_errmsg(DB_CON) << std::endl;
     }
+    int count = 0;
+    for (auto const& hash:  fp.hashes) {
+        sqlite3_bind_blob(stmt, 1, HASH_DATA(hash), HASH_SIZE, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 2, HASH_OFFSET(hash));
+        sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE)
+            std::cerr << "execution failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+        
+        sqlite3_reset(stmt);
+
+        count++;
+
+        // auto sql_str = fmt::format(
+        //     "insert into fingerprints (hash, offset, song) values ({}, {}, '{}')",
+        //     HASH_DATA(hash), HASH_OFFSET(hash), fp.name
+        // );
+
+        // rc = sqlite3_exec(DB_CON, sql_str.c_str(), NULL, 0, &errMsg);
+        // if( rc != SQLITE_OK ){
+        //     std::cerr << "Error: " << errMsg << std::endl;
+        // }
+    }
+    sqlite3_finalize(stmt);
+
+    rc = sqlite3_exec(DB_CON, "END TRANSACTION;", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) {
+        std::cerr << "commit failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+    }
+
 }
 
 
@@ -120,41 +150,75 @@ public:
 
 
 std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
+    char* errMsg;
+    int rc;
+
+    std::string sql = R"(
+        create table if not exists ttemp (
+            hash BLOB NOT NULL,
+            offset INT NOT NULL,
+            song TEXT NOT NULL
+        );
+    )";
+    rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &errMsg);
+    if( rc != SQLITE_OK ){
+        std::cerr << "Error: " << errMsg << std::endl;
+    }
+
+    sqlite3_stmt *stmt = NULL;
+    rc = sqlite3_prepare(
+        DB_CON,
+        "INSERT INTO ttemp (hash, offset, song) VALUES(?, ?, ?)",
+        -1, &stmt, NULL
+    );
+    if (rc != SQLITE_OK) {
+        std::cerr << "prepare failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+    }
+    
+    sqlite3_exec(DB_CON, "BEGIN TRANSACTION", NULL, NULL, NULL);
+
+    for (auto const& hash:  fp.hashes) {
+        sqlite3_bind_blob(stmt, 1, HASH_DATA(hash), HASH_SIZE, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 2, HASH_OFFSET(hash));
+        sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE)
+            std::cerr << "execution failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+        sqlite3_reset(stmt);
+
+    }
+    sqlite3_exec(DB_CON, "END TRANSACTION", NULL, NULL, NULL);
+    sqlite3_finalize(stmt);
+
+
+
+    rc = sqlite3_prepare(
+        DB_CON,
+        R"(
+            select
+                fp.song,
+                (fp.offset - ttemp.offset) as offset_diff
+            from fingerprints fp
+            join ttemp on ttemp.hash = fp.hash
+        )",
+        -1, &stmt, NULL
+    );
+    if (rc != SQLITE_OK)
+        std::cerr << "1231232113execution failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+
     std::vector<Match> matches;
+    while ( sqlite3_step(stmt) == SQLITE_ROW) {
+        Match new_match;
+        new_match.song_name = std::string((const char *)sqlite3_column_text(stmt, 0));
+        new_match.offset = sqlite3_column_int(stmt, 1);
+        matches.push_back(new_match);
+    }
+    sqlite3_finalize(stmt);
 
-    // redisReply* reply;
-    // for (auto const& hash:  fp.hashes) {
-
-    //     reply = (redisReply*)redisCommand(
-    //         (redisContext*)redis,
-    //         "SMEMBERS hash:%b", HASH_DATA(hash), HASH_SIZE
-    //     );
-    //     if (reply == NULL) {
-    //         continue;
-    //     }
-    //     if (reply->type != REDIS_REPLY_ARRAY) {
-    //         continue;
-    //     }
-    //     for (int i = 0; i < reply->elements; i++) {
-    //         auto r = reply->element[i];
-    //         Match new_match;
-    //         new_match.song_name = std::string(r->str, r->len);
-
-    //         auto offset_reply = (redisReply*)redisCommand(
-    //             (redisContext*)redis,
-    //             "GET hash:%b:offset", HASH_DATA(hash), HASH_SIZE
-    //         );
-    //         int original_offset = std::stoi(std::string(offset_reply->str, offset_reply->len));
-    //         int current_offset = HASH_OFFSET(hash);
-    //         freeReplyObject(offset_reply);
-
-    //         new_match.offset = original_offset - current_offset;
-    //         matches.push_back(new_match);
-    //     }
-
-    //     freeReplyObject(reply);
-        
-    // }
+    rc = sqlite3_exec(DB_CON, "drop table ttemp", NULL, 0, &errMsg);
+    if( rc != SQLITE_OK ){
+        std::cerr << "Error dropping database: " << errMsg << std::endl;
+    }
     
     std::map<std::pair<int, std::string>, int> grouped_matches;
     for(auto& match: matches) {

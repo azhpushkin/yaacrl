@@ -18,7 +18,7 @@ set(SOURCES
     src/spectrogram.cpp
     src/fingerprint.cpp)
 
-include_directories(yaacrl PUBLIC ${PROJECT_SOURCE_DIR}/include)
+include_directories(yaacrl PUBLIC ${PROJECT_SOURCE_DIR}/include/yaacrl)
 include_directories(yaacrl PUBLIC ${PROJECT_SOURCE_DIR}/src)
 
 # Shared library
