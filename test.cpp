@@ -10,15 +10,18 @@
 namespace fs = std::filesystem;
 using namespace yaacrl;
 
-int main() {
+int main(int argc, char* argv[]) {
     std::vector<fs::path> songs;
     std::vector<fs::path> test_fragments;
     
-    // TODO: CLI arguments needed instead of hardcode
-    auto home_path = std::string(getenv("HOME"));
-    const fs::path workdir = home_path + "/projects/yaacrl/songs";
+    if (argc < 2) {
+        std::cout << "Please add directory with songs and test samples" << std::endl;
+        return 1;
+    }
+
+    const fs::path songs_dir = fs::path(argv[1]);
     
-    for(auto& p: fs::directory_iterator(workdir)) {
+    for(auto& p: fs::directory_iterator(songs_dir)) {
         std::string filename = p.path().filename();
         if (filename.find("skip_") == 0) {
             continue;
