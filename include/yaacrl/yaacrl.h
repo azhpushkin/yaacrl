@@ -38,7 +38,7 @@ private:
 
 class Storage {
 public:
-    Storage();
+    Storage(std::string filepath);
     ~Storage();
     void store_fingerprint(Fingerprint&& fp);
     void store_fingerprint(Fingerprint& fp);

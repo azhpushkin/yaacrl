@@ -30,7 +30,7 @@ int main() {
         }
     }
 
-    Storage storage;
+    Storage storage("database.sqlite");
     std::cout << "### Upload songs" << std::endl;
     for (auto& song: songs) {
         std::cout << "Processing " << song.filename() << std::endl;

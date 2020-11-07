@@ -53,12 +53,12 @@ void Fingerprint::process(std::string path) {
     this->hashes = generate_hashes(this->peaks);
 }
 
-Storage::Storage() {
+Storage::Storage(std::string file) {
     int rc;
     char *zErrMsg;
     std::string sql;
     
-    rc = sqlite3_open("file.sqlite", (sqlite3**)(&db));
+    rc = sqlite3_open(file.c_str(), (sqlite3**)(&db));
     if ( rc ) {
         std::cerr << "Error creating SQLite database: " << sqlite3_errmsg(DB_CON) << std::endl;
         std::abort();
