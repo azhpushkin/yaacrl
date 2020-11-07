@@ -7,3 +7,8 @@ Contains logic for both fingerprinting and storage (storage is done via sqlite).
 quirks here and there. For instance, there is neither configuration of Storage
 for fingerprints nor any guarantees of persistense about those, as for now.
 
+
+There are CMake targets for static and shared library.
+Both targets perform linking to shared libraries `libdl` and `libpthread` automatically.
+
+Note that 
