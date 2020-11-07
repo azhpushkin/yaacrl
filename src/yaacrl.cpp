@@ -195,23 +195,35 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     rc = sqlite3_prepare(
         DB_CON,
         R"(
-            select
-                fp.song,
-                (fp.offset - ttemp.offset) as offset_diff
-            from fingerprints fp
-            join ttemp on ttemp.hash = fp.hash
+             with matches as (
+                select
+                    fp.song as song,
+                    (fp.offset - ttemp.offset) as offset_diff
+                from fingerprints fp
+                join ttemp on ttemp.hash = fp.hash
+                where offset_diff > 0
+            ),
+            grouped_matches as (
+                select
+                    song,
+                    offset_diff,
+                    count(*) as total
+                from matches
+                group by song, offset_diff
+                having total >= 2
+            )
+            select song, total * 1.0 / (select count(*) from matches) from grouped_matches          
         )",
         -1, &stmt, NULL
     );
     if (rc != SQLITE_OK)
         std::cerr << "1231232113execution failed: " << sqlite3_errmsg(DB_CON) << std::endl;
 
-    std::vector<Match> matches;
+    
+    std::map<std::string, float> res;
     while ( sqlite3_step(stmt) == SQLITE_ROW) {
-        Match new_match;
-        new_match.song_name = std::string((const char *)sqlite3_column_text(stmt, 0));
-        new_match.offset = sqlite3_column_int(stmt, 1);
-        matches.push_back(new_match);
+        std::string song((const char *)sqlite3_column_text(stmt, 0));
+        res[song] = (float)sqlite3_column_double(stmt, 1);
     }
     sqlite3_finalize(stmt);
 
@@ -219,29 +231,5 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     if( rc != SQLITE_OK ){
         std::cerr << "Error dropping database: " << errMsg << std::endl;
     }
-    
-    std::map<std::pair<int, std::string>, int> grouped_matches;
-    for(auto& match: matches) {
-        std::pair<int, std::string> pair = std::make_pair(match.offset, match.song_name);
-
-        grouped_matches[pair]++;
-    }
-
-    std::map<std::string, int> songs_matches;
-    for (auto& pair: grouped_matches) {
-        auto amount = std::get<1>(pair);
-        auto song = std::get<1>( std::get<0>(pair) );
-        if (amount < CONFIDENCE) {
-            continue; 
-        }
-        
-        songs_matches[song] += amount;
-    }
-
-    std::map<std::string, float> res;
-    for(auto& pair: songs_matches) {
-        res[std::get<0>(pair)] = std::get<1>(pair) / (float) matches.size();
-    }
-
     return res;
 }
