@@ -16,6 +16,7 @@
 
 #define CONFIDENCE 2  // at least 2 simult for a match
 #define DB_CON (sqlite3*)db
+#define PRINT_CERR_AND_ABORT(msg) { std::cerr << msg << sqlite3_errmsg(DB_CON) << std::endl; std::abort(); }
 
 using namespace yaacrl;
 
@@ -65,11 +66,11 @@ Storage::Storage(std::string file) {
     }
 
     sql = R"(
-        create table fingerprints (
+        create table if not exists fingerprints (
             hash BLOB NOT NULL,
             offset INT NOT NULL,
             song TEXT NOT NULL
-        );
+        )
     )";
     rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &zErrMsg);
     if( rc != SQLITE_OK ){
@@ -77,10 +78,10 @@ Storage::Storage(std::string file) {
     }
 
     sql = R"(
-        create index hash_index on fingerprints(hash);
+        create index if not exists hash_index on fingerprints(hash);
     )";
     rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &zErrMsg);
-    if( rc != SQLITE_OK ){
+    if( rc != SQLITE_OK ) {
         std::cerr << "Error: " << zErrMsg << std::endl;
     }
 }
@@ -95,9 +96,12 @@ void Storage::store_fingerprint(Fingerprint&& fp) {
 
 void Storage::store_fingerprint(Fingerprint& fp) {
     int rc;
-    char* errMsg;
 
-    sqlite3_exec(DB_CON, "BEGIN TRANSACTION;", NULL, NULL, NULL);
+    // Perform all inserts in a transaction
+    rc = sqlite3_exec(DB_CON, "BEGIN TRANSACTION", NULL, NULL, NULL);
+    if (rc != SQLITE_OK)
+        PRINT_CERR_AND_ABORT("Cannot begin transaction: ")
+
 
     sqlite3_stmt *stmt = NULL;
     rc = sqlite3_prepare(
@@ -105,52 +109,29 @@ void Storage::store_fingerprint(Fingerprint& fp) {
         "INSERT INTO fingerprints (hash, offset, song) VALUES(?, ?, ?)",
         -1, &stmt, NULL
     );
-    if (rc != SQLITE_OK) {
-        std::cerr << "prepare failed: " << sqlite3_errmsg(DB_CON) << std::endl;
-    }
-    int count = 0;
+    if (rc != SQLITE_OK)
+        PRINT_CERR_AND_ABORT("Error preparing insert: ")
+    
     for (auto const& hash:  fp.hashes) {
         sqlite3_bind_blob(stmt, 1, HASH_DATA(hash), HASH_SIZE, SQLITE_STATIC);
         sqlite3_bind_int(stmt, 2, HASH_OFFSET(hash));
         sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
         rc = sqlite3_step(stmt);
-        if (rc != SQLITE_DONE)
-            std::cerr << "execution failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+        if (rc != SQLITE_DONE) {
+            std::cerr << "Bad bind to insert: " << sqlite3_errmsg(DB_CON) << std::endl;
+        }
         
         sqlite3_reset(stmt);
-
-        count++;
-
-        // auto sql_str = fmt::format(
-        //     "insert into fingerprints (hash, offset, song) values ({}, {}, '{}')",
-        //     HASH_DATA(hash), HASH_OFFSET(hash), fp.name
-        // );
-
-        // rc = sqlite3_exec(DB_CON, sql_str.c_str(), NULL, 0, &errMsg);
-        // if( rc != SQLITE_OK ){
-        //     std::cerr << "Error: " << errMsg << std::endl;
-        // }
     }
     sqlite3_finalize(stmt);
 
-    rc = sqlite3_exec(DB_CON, "END TRANSACTION;", NULL, NULL, NULL);
-    if (rc != SQLITE_OK) {
-        std::cerr << "commit failed: " << sqlite3_errmsg(DB_CON) << std::endl;
-    }
-
+    rc = sqlite3_exec(DB_CON, "END TRANSACTION", NULL, NULL, NULL);
+    if (rc != SQLITE_OK)
+        PRINT_CERR_AND_ABORT("Error commiting transaction: ")
 }
 
 
-// Probably should not be here, IDK
-class Match {
-public:
-    std::string song_name;
-    int offset;
-};
-
-
 std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
-    char* errMsg;
     int rc;
 
     std::string sql = R"(
@@ -160,10 +141,9 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
             song TEXT NOT NULL
         );
     )";
-    rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &errMsg);
-    if( rc != SQLITE_OK ){
-        std::cerr << "Error: " << errMsg << std::endl;
-    }
+    rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, NULL, NULL);
+    if( rc != SQLITE_OK )
+        PRINT_CERR_AND_ABORT("Error creating temporary table: ")
 
     sqlite3_stmt *stmt = NULL;
     rc = sqlite3_prepare(
@@ -171,25 +151,31 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
         "INSERT INTO ttemp (hash, offset, song) VALUES(?, ?, ?)",
         -1, &stmt, NULL
     );
-    if (rc != SQLITE_OK) {
-        std::cerr << "prepare failed: " << sqlite3_errmsg(DB_CON) << std::endl;
-    }
+    if (rc != SQLITE_OK)
+        PRINT_CERR_AND_ABORT("Error preparing insert: ")
     
-    sqlite3_exec(DB_CON, "BEGIN TRANSACTION", NULL, NULL, NULL);
+    rc = sqlite3_exec(DB_CON, "BEGIN TRANSACTION", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) {
+        PRINT_CERR_AND_ABORT("Error starting transaction: ")
+    }
 
     for (auto const& hash:  fp.hashes) {
         sqlite3_bind_blob(stmt, 1, HASH_DATA(hash), HASH_SIZE, SQLITE_STATIC);
         sqlite3_bind_int(stmt, 2, HASH_OFFSET(hash));
         sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
         rc = sqlite3_step(stmt);
-        if (rc != SQLITE_DONE)
-            std::cerr << "execution failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+        if (rc != SQLITE_DONE) {
+            std::cerr << "Insert into temp failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+        }   
+            
         sqlite3_reset(stmt);
 
     }
-    sqlite3_exec(DB_CON, "END TRANSACTION", NULL, NULL, NULL);
+    rc = sqlite3_exec(DB_CON, "END TRANSACTION", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) {
+        PRINT_CERR_AND_ABORT("Error committing transaction: ")
+    }
     sqlite3_finalize(stmt);
-
 
 
     rc = sqlite3_prepare(
@@ -217,7 +203,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
         -1, &stmt, NULL
     );
     if (rc != SQLITE_OK)
-        std::cerr << "1231232113execution failed: " << sqlite3_errmsg(DB_CON) << std::endl;
+        PRINT_CERR_AND_ABORT("Error selecting matches: ")
 
     
     std::map<std::string, float> res;
@@ -227,9 +213,9 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     }
     sqlite3_finalize(stmt);
 
-    rc = sqlite3_exec(DB_CON, "drop table ttemp", NULL, 0, &errMsg);
-    if( rc != SQLITE_OK ){
-        std::cerr << "Error dropping database: " << errMsg << std::endl;
+    rc = sqlite3_exec(DB_CON, "drop table ttemp", NULL, NULL, NULL);
+    if( rc != SQLITE_OK ) {
+        std::cerr << "Error dropping temp: " << sqlite3_errmsg(DB_CON) << std::endl;
     }
     return res;
 }
