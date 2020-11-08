@@ -11,6 +11,7 @@
 struct Peak {
     int window;
     int bin;
+    Peak() {};  // required by Cython
     Peak(int window_, int bin_): window(window_), bin(bin_) {};
 };
 
