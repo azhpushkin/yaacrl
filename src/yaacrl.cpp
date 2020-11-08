@@ -1,6 +1,5 @@
 #include <string>
 #include <map>
-#include <utility>
 #include <iostream>
 #include <cstring>
 #include <algorithm>
@@ -113,8 +112,8 @@ void Storage::store_fingerprint(Fingerprint& fp) {
         PRINT_CERR_AND_ABORT("Error preparing insert: ")
     
     for (auto const& hash:  fp.hashes) {
-        sqlite3_bind_blob(stmt, 1, HASH_DATA(hash), HASH_SIZE, SQLITE_STATIC);
-        sqlite3_bind_int(stmt, 2, HASH_OFFSET(hash));
+        sqlite3_bind_blob(stmt, 1, hash.hash.data(), HASH_SIZE, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 2, hash.offset);
         sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE) {
@@ -160,8 +159,8 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     }
 
     for (auto const& hash:  fp.hashes) {
-        sqlite3_bind_blob(stmt, 1, HASH_DATA(hash), HASH_SIZE, SQLITE_STATIC);
-        sqlite3_bind_int(stmt, 2, HASH_OFFSET(hash));
+        sqlite3_bind_blob(stmt, 1, hash.hash.data(), HASH_SIZE, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 2, hash.offset);
         sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE) {

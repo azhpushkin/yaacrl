@@ -4,6 +4,7 @@ project(yaacrl VERSION 0.1.0)
 # std::filesystem from C++17 is used
 set(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_FLAGS "-O3")
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)

@@ -80,11 +80,11 @@ std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
     for(int i = 0; i < peaks.size(); i++) {
         int c = 0;
         for (int j = i + 1; (j < peaks.size() && c < MAX_FAN); j++) {
-            auto distance = std::get<0>(peaks[j]) - std::get<0>(peaks[i]);
+            auto distance = peaks[j].window - peaks[i].window;
             if (distance == 0) continue;
 
-            format_key[0] = std::get<1>(peaks[i]);  // freq 1
-            format_key[1] = std::get<1>(peaks[j]);  // freq 2
+            format_key[0] = peaks[i].bin;  // freq 1
+            format_key[1] = peaks[j].bin;  // freq 2
             format_key[2] = distance;  // window2 - window1
             
             Hash new_hash;
@@ -92,10 +92,10 @@ std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
                 format_key,
                 sizeof(int) * 3,
                 0,
-                std::get<0>(new_hash).data()
+                new_hash.hash.data()  // pointer to std::array
             );
-
-            std::get<1>(new_hash) = std::get<0>(peaks[i]);
+            // offset from beginning of the track, thus earlier peak taken
+            new_hash.offset = peaks[9].window;
 
             hashes.push_back(new_hash);
             c++;
