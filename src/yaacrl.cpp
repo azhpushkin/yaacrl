@@ -1,8 +1,6 @@
 #include <string>
 #include <map>
 #include <iostream>
-#include <cstring>
-#include <algorithm>
 
 #include "vendor/sqlite3.h"
 #include "vendor/AudioFile.h"
