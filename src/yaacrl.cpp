@@ -11,8 +11,6 @@
 #include "spectrogram.h"
 #include "yaacrl.h"
 
-#include "vendor/fmt.h"
-
 #define CONFIDENCE 2  // at least 2 simult for a match
 #define DB_CON (sqlite3*)db
 #define PRINT_CERR_AND_ABORT(msg) { std::cerr << msg << sqlite3_errmsg(DB_CON) << std::endl; std::abort(); }
