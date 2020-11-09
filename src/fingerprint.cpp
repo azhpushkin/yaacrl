@@ -92,10 +92,10 @@ std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
                 format_key,
                 sizeof(int) * 3,
                 0,
-                new_hash.hash.data()  // pointer to std::array
+                new_hash.hash_data  // pointer to std::array
             );
             // offset from beginning of the track, thus earlier peak taken
-            new_hash.offset = peaks[9].window;
+            new_hash.offset = peaks[i].window;
 
             hashes.push_back(new_hash);
             c++;

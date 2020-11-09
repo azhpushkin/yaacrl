@@ -1,12 +1,10 @@
 #pragma once
 
 #include <vector>
-#include <array>
+#include <cstdint>
 
 #include "spectrogram.h"
 
-
-#define HASH_SIZE 16
 
 struct Peak {
     int window;
@@ -16,7 +14,7 @@ struct Peak {
 };
 
 struct Hash {
-    std::array<char, HASH_SIZE> hash;
+    uint8_t hash_data[16];  // 128 bits entropy
     int offset;
 };
 
