@@ -18,8 +18,12 @@ using namespace yaacrl;
 WAVFile::WAVFile(std::string path_): path(path_), name(path_) {}
 WAVFile::WAVFile(std::string path_, std::string name_): path(path_), name(name_) {}
 
-MP3File::MP3File(std::string path_): path(path_), name(path_) {}
-MP3File::MP3File(std::string path_, std::string name_): path(path_), name(name_) {}
+MP3File::MP3File(std::string path_): path(path_), name(path_) {
+    throw std::runtime_error("MP3File is not implemented yet!");
+}
+MP3File::MP3File(std::string path_, std::string name_): path(path_), name(name_) {
+    throw std::runtime_error("MP3File is not implemented yet!");
+}
 
 
 Fingerprint::Fingerprint(const WAVFile& file) {
