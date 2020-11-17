@@ -18,6 +18,7 @@ set(VENDOR_SOURCES
 set(SOURCES
     ${VENDOR_SOURCES}
     src/yaacrl.cpp
+    src/config.cpp
     src/spectrogram.cpp
     src/fingerprint.cpp)
 

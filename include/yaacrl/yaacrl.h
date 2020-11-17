@@ -7,6 +7,7 @@
 
 #include "fingerprint.h"
 #include "spectrogram.h"
+#include "config.h"
 
 
 namespace yaacrl {

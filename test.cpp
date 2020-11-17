@@ -32,11 +32,20 @@ but as you did it for some reason, here is a cute ASCII cat as an endorsement:
 
 #include "yaacrl.h"
 
-
 namespace fs = std::filesystem;
-using namespace yaacrl;
+
+
+// Simplest possible logger
+void custom_logger(LogLevel lvl,const char* msg) {
+    std::cout << "[" << static_cast<int>(lvl) << "] " << msg << std::endl;
+}
+
+
+
 
 int main(int argc, char* argv[]) {
+    set_logger(custom_logger);
+
     std::vector<fs::path> songs;
     std::vector<fs::path> test_fragments;
     
@@ -59,11 +68,11 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    Storage storage("database.sqlite");
+    yaacrl::Storage storage("database.sqlite");
     std::cout << "### Upload songs" << std::endl;
     for (auto& song: songs) {
         std::cout << "Processing " << song.filename() << std::endl;
-        auto fprint = Fingerprint(WAVFile(song));
+        auto fprint = yaacrl::Fingerprint(yaacrl::WAVFile(song));
         std::cout << "  -> " << fprint.hashes.size() << " hashes created" << std::endl;
         storage.store_fingerprint(fprint);
         std::cout << "  -> fingeprint saved" << std::endl;
@@ -72,7 +81,7 @@ int main(int argc, char* argv[]) {
     std::cout << "### Test fragments" << std::endl;
     for (auto& item: test_fragments) {
         std::cout << "Check " << item.filename() << std::endl;
-        auto fprint = Fingerprint(WAVFile(item));
+        auto fprint = yaacrl::Fingerprint(yaacrl::WAVFile(item));
         std::cout << "  -> " << fprint.hashes.size() << " hashes detected" << std::endl;
         auto matches = storage.get_matches(fprint);
         std::cout << "  -> " << " Match results: " <<  std::endl;
