@@ -36,7 +36,7 @@ namespace fs = std::filesystem;
 
 
 // Simplest possible logger
-void custom_logger(LogLevel lvl,const char* msg) {
+void custom_logger(yaacrl::LogLevel lvl,const char* msg) {
     std::cout << "[" << static_cast<int>(lvl) << "] " << msg << std::endl;
 }
 
@@ -44,7 +44,7 @@ void custom_logger(LogLevel lvl,const char* msg) {
 
 
 int main(int argc, char* argv[]) {
-    set_logger(custom_logger);
+    yaacrl::set_logger(custom_logger);
 
     std::vector<fs::path> songs;
     std::vector<fs::path> test_fragments;
