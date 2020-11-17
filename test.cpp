@@ -1,3 +1,29 @@
+/*
+This is a small test program that I use for testing YAACRL.
+
+Here is how you can try it:
+1. Create a directory with some audio files (WAV, mono)
+2. Add `test_` prefix to the files that need to be used for matching
+3. Add `skip_` prefix to files you want to exclude from processing
+  (so you dont need to worry about removal-restore of those files)
+4. Build `yaacrl-test` CMake target
+5. Run `build_dir/yaacrl-test /path/to/dir/with/audio`
+6. Enjoy!
+
+I honestly do not expect anyone to read this comment or to launch this program,
+but as you did it for some reason, here is a cute ASCII cat as an endorsement:
+ ,_     _
+ |\\_,-~/
+ / _  _ |    ,--.
+(  @  @ )   / ,-'
+ \  _T_/-._( (
+ /         `. \
+|         _  \ |
+ \ \ ,  /      |
+  || |-_\__   /
+ ((_/`(____,-'
+ 
+*/
 #include <iostream>
 #include <string>
 #include <filesystem>
