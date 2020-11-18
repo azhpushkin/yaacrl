@@ -12,8 +12,8 @@ enum class LogLevel {
 };
 
 
-void yaacrl_log_message(LogLevel lvl, const char* msg);
+void yaacrl_log_message(LogLevel lvl, std::string msg);
 
-void set_logger(void(*new_logger)(LogLevel,const char*));
+void set_logger(void(*new_logger)(LogLevel,std::string));
 
 }

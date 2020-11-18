@@ -36,10 +36,9 @@ namespace fs = std::filesystem;
 
 
 // Simplest possible logger
-void custom_logger(yaacrl::LogLevel lvl,const char* msg) {
+void custom_logger(yaacrl::LogLevel lvl, std::string msg) {
     std::cout << "[" << static_cast<int>(lvl) << "] " << msg << std::endl;
 }
-
 
 
 

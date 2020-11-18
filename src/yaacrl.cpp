@@ -15,13 +15,19 @@
 
 using namespace yaacrl;
 
-WAVFile::WAVFile(std::string path_): path(path_), name(path_) {}
-WAVFile::WAVFile(std::string path_, std::string name_): path(path_), name(name_) {}
+WAVFile::WAVFile(std::string path_): path(path_), name(path_) {
+    // yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: ") + path_);
+}
+WAVFile::WAVFile(std::string path_, std::string name_): path(path_), name(name_) {
+    // yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: ") + path_);
+}
 
 MP3File::MP3File(std::string path_): path(path_), name(path_) {
+    // yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
     throw std::runtime_error("MP3File is not implemented yet!");
 }
 MP3File::MP3File(std::string path_, std::string name_): path(path_), name(name_) {
+    // yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
     throw std::runtime_error("MP3File is not implemented yet!");
 }
 
