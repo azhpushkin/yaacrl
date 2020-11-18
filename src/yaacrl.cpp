@@ -16,10 +16,10 @@
 using namespace yaacrl;
 
 WAVFile::WAVFile(std::string path_): path(path_), name(path_) {
-    // yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: "));
+    yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: ") + path_);
 }
 WAVFile::WAVFile(std::string path_, std::string name_): path(path_), name(name_) {
-    // yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: ") + path_);
+    yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: ") + path_);
 }
 
 MP3File::MP3File(std::string path_): path(path_), name(path_) {

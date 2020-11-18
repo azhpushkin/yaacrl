@@ -6,7 +6,7 @@ using namespace yaacrl;
 
 void (*log_function)(LogLevel,std::string);
 
-void yaacrl_log_message(LogLevel lvl ,std::string msg) {
+void yaacrl::yaacrl_log_message(LogLevel lvl ,std::string msg) {
     if (log_function != nullptr) {
         log_function(lvl, msg);
     }
