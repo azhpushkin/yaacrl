@@ -11,7 +11,7 @@
 
 #define CONFIDENCE 2  // at least 2 simult for a match
 #define DB_CON (sqlite3*)db
-#define PRINT_CERR_AND_ABORT(msg) { std::cerr << msg << sqlite3_errmsg(DB_CON) << std::endl; std::abort(); }
+#define LOG_ERR(msg) { yaacrl_log_message(LogLevel::ERROR, std::string(msg) + std::string(sqlite3_errmsg(DB_CON))); }
 
 using namespace yaacrl;
 
@@ -23,11 +23,11 @@ WAVFile::WAVFile(std::string path_, std::string name_): path(path_), name(name_)
 }
 
 MP3File::MP3File(std::string path_): path(path_), name(path_) {
-    // yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
+    yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
     throw std::runtime_error("MP3File is not implemented yet!");
 }
 MP3File::MP3File(std::string path_, std::string name_): path(path_), name(name_) {
-    // yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
+    yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
     throw std::runtime_error("MP3File is not implemented yet!");
 }
 
@@ -35,12 +35,14 @@ MP3File::MP3File(std::string path_, std::string name_): path(path_), name(name_)
 Fingerprint::Fingerprint(const WAVFile& file) {
     this->name = file.name;
     this->process(file.path);
+    yaacrl_log_message(LogLevel::INFO, std::string("Successfully processed ") + file.name);
 }
 
 // TODO: throw exception for mp3 file
 Fingerprint::Fingerprint(const MP3File& file) {
     this->name = file.name;
     this->process(file.path);
+    yaacrl_log_message(LogLevel::INFO, std::string("Successfully processed ") + file.name);
 }
 
 void Fingerprint::process(std::string path) {
@@ -50,8 +52,8 @@ void Fingerprint::process(std::string path) {
 
     if (1 != audioFile.getNumChannels()) {
         // TODO: change to logging
-        std::cerr << "Detected number of channels is not supported!" << std::endl;
-        std::abort();
+        yaacrl_log_message(LogLevel::ERROR, std::string("Only mono files are supported, error processing") + path);
+        return;
     }
     
     this->spec = gen_spectrogram(audioFile.samples[0]);
@@ -66,8 +68,7 @@ Storage::Storage(std::string file) {
     
     rc = sqlite3_open(file.c_str(), (sqlite3**)(&db));
     if ( rc ) {
-        std::cerr << "Error creating SQLite database: " << sqlite3_errmsg(DB_CON) << std::endl;
-        std::abort();
+        yaacrl_log_message(LogLevel::ERROR, std::string("Error creating SQLite database: ") + std::string(sqlite3_errmsg(DB_CON)));
     }
 
     sql = R"(
@@ -79,7 +80,7 @@ Storage::Storage(std::string file) {
     )";
     rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &zErrMsg);
     if( rc != SQLITE_OK ){
-        std::cerr << "Error: " << zErrMsg << std::endl;
+        yaacrl_log_message(LogLevel::ERROR, std::string("Error creating fingerprints table"));
     }
 
     sql = R"(
@@ -87,8 +88,10 @@ Storage::Storage(std::string file) {
     )";
     rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &zErrMsg);
     if( rc != SQLITE_OK ) {
-        std::cerr << "Error: " << zErrMsg << std::endl;
+        yaacrl_log_message(LogLevel::ERROR, std::string("Error creating index"));
     }
+
+    yaacrl_log_message(LogLevel::INFO, std::string("SQLite database setup completed successfully"));
 }
 
 Storage::~Storage() {
@@ -105,7 +108,7 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     // Perform all inserts in a transaction
     rc = sqlite3_exec(DB_CON, "BEGIN TRANSACTION", NULL, NULL, NULL);
     if (rc != SQLITE_OK)
-        PRINT_CERR_AND_ABORT("Cannot begin transaction: ")
+        LOG_ERR("Cannot begin transaction: ")
 
 
     sqlite3_stmt *stmt = NULL;
@@ -115,7 +118,7 @@ void Storage::store_fingerprint(Fingerprint& fp) {
         -1, &stmt, NULL
     );
     if (rc != SQLITE_OK)
-        PRINT_CERR_AND_ABORT("Error preparing insert: ")
+        LOG_ERR("Error preparing insert: ")
     
     for (auto const& hash:  fp.hashes) {
         sqlite3_bind_blob(stmt, 1, hash.hash_data, sizeof(hash.hash_data), SQLITE_STATIC);
@@ -123,7 +126,7 @@ void Storage::store_fingerprint(Fingerprint& fp) {
         sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE) {
-            std::cerr << "Bad bind to insert: " << sqlite3_errmsg(DB_CON) << std::endl;
+            LOG_ERR("Bad bind to insert: ");
         }
         
         sqlite3_reset(stmt);
@@ -132,7 +135,7 @@ void Storage::store_fingerprint(Fingerprint& fp) {
 
     rc = sqlite3_exec(DB_CON, "END TRANSACTION", NULL, NULL, NULL);
     if (rc != SQLITE_OK)
-        PRINT_CERR_AND_ABORT("Error commiting transaction: ")
+        LOG_ERR("Error commiting transaction: ")
 }
 
 
@@ -148,7 +151,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     )";
     rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, NULL, NULL);
     if( rc != SQLITE_OK )
-        PRINT_CERR_AND_ABORT("Error creating temporary table: ")
+        LOG_ERR("Error creating temporary table: ")
 
     sqlite3_stmt *stmt = NULL;
     rc = sqlite3_prepare(
@@ -157,11 +160,11 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
         -1, &stmt, NULL
     );
     if (rc != SQLITE_OK)
-        PRINT_CERR_AND_ABORT("Error preparing insert: ")
+        LOG_ERR("Error preparing insert: ")
     
     rc = sqlite3_exec(DB_CON, "BEGIN TRANSACTION", NULL, NULL, NULL);
     if (rc != SQLITE_OK) {
-        PRINT_CERR_AND_ABORT("Error starting transaction: ")
+        LOG_ERR("Error starting transaction: ")
     }
 
     for (auto const& hash:  fp.hashes) {
@@ -178,7 +181,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     }
     rc = sqlite3_exec(DB_CON, "END TRANSACTION", NULL, NULL, NULL);
     if (rc != SQLITE_OK) {
-        PRINT_CERR_AND_ABORT("Error committing transaction: ")
+        LOG_ERR("Error committing transaction: ")
     }
     sqlite3_finalize(stmt);
 
@@ -208,7 +211,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
         -1, &stmt, NULL
     );
     if (rc != SQLITE_OK)
-        PRINT_CERR_AND_ABORT("Error selecting matches: ")
+        LOG_ERR("Error selecting matches: ")
 
     
     std::map<std::string, float> res;
@@ -220,7 +223,9 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
 
     rc = sqlite3_exec(DB_CON, "drop table ttemp", NULL, NULL, NULL);
     if( rc != SQLITE_OK ) {
-        std::cerr << "Error dropping temp: " << sqlite3_errmsg(DB_CON) << std::endl;
+        LOG_ERR("Error dropping temp:");
     }
+    yaacrl_log_message(LogLevel::INFO, std::string("Matches lookup processed for ") + fp.name);
+
     return res;
 }
