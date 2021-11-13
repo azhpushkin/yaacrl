@@ -23,6 +23,10 @@
 #ifndef _AS_AudioFile_h
 #define _AS_AudioFile_h
 
+/* Added due to GCC 11 quirks: https://www.gnu.org/software/gcc/gcc-11/porting_to.html
+ * (read the [HEADER DEPENDENCY CHANGES] section) */
+#include <limits>
+
 #include <iostream>
 #include <vector>
 #include <cassert>
