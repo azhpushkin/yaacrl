@@ -46,7 +46,7 @@ Spectrogram gen_spectrogram(std::vector<float> samples) {
         for (int i = 0; i < BINS_AMOUNT; i++) {
             new_bin[i] = 10*log10(cpx_to[i].i * cpx_to[i].i + cpx_to[i].r*cpx_to[i].r);
             if (!isfinite(new_bin[i])){
-                new_bin[i] = -9999.;
+                new_bin[i] = 0;
             }
         }
         specgram.push_back(new_bin);
