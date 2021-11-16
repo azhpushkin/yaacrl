@@ -10,3 +10,11 @@ for fingerprints nor any guarantees of persistense about those, as for now.
 
 There are CMake targets for static and shared library.
 Both targets perform linking to shared libraries `libdl` and `libpthread` automatically.
+
+TODOs:
+- [ ] make configurable TOP amount
+- [ ] make Storage thread-safe
+- [ ] make recognition more robust (e.g. drop ttemp table)
+- [ ] separate storage.cpp out of yaacrl.cpp
+- [ ] add mp3 support
+- [ ] optional name of the song on import (gui - cut only filename)

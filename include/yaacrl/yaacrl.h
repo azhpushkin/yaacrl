@@ -31,7 +31,6 @@ public:
     Fingerprint(const WAVFile& file);
     Fingerprint(const MP3File& file);
     std::string name;
-    Spectrogram spec;
     std::vector<Peak> peaks;
     std::vector<Hash> hashes;
 private:

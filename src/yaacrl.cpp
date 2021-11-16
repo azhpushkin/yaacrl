@@ -50,15 +50,19 @@ void Fingerprint::process(std::string path) {
 
     audioFile.load (path);
 
-    if (1 != audioFile.getNumChannels()) {
-        // TODO: change to logging
-        yaacrl_log_message(LogLevel::ERROR, std::string("Only mono files are supported, error processing") + path);
-        return;
+    for (int i = 0; i < audioFile.getNumChannels(); i++) {
+        std::cout << "found " << audioFile.samples[i].size() << " samples" << std::endl;
+        auto spec = gen_spectrogram(audioFile.samples[i]);
+        auto peaks = find_peaks(spec);
+        auto hashes = generate_hashes(peaks);
+
+        this->peaks.reserve(this->peaks.size() + distance(peaks.begin(), peaks.end()));
+        this->peaks.insert(this->peaks.end(), peaks.begin(), peaks.end());
+
+        this->hashes.reserve(this->hashes.size() + distance(hashes.begin(), hashes.end()));
+        this->hashes.insert(this->hashes.end(), hashes.begin(), hashes.end());
     }
-    
-    this->spec = gen_spectrogram(audioFile.samples[0]);
-    this->peaks = find_peaks(this->spec);
-    this->hashes = generate_hashes(this->peaks);
+
 }
 
 Storage::Storage(std::string file) {
@@ -204,9 +208,13 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
                     count(*) as total
                 from matches
                 group by song, offset_diff
-                having total >= 2
+                order by total desc
+				limit 10
             )
-            select song, total * 1.0 / (select count(*) from matches) from grouped_matches          
+            select song, sum(total) as total_matches
+            from grouped_matches
+            group by song
+			order by total_matches desc    
         )",
         -1, &stmt, NULL
     );
@@ -217,7 +225,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     std::map<std::string, float> res;
     while ( sqlite3_step(stmt) == SQLITE_ROW) {
         std::string song((const char *)sqlite3_column_text(stmt, 0));
-        res[song] = (float)sqlite3_column_double(stmt, 1);
+        res[song] = ((float)sqlite3_column_int(stmt, 1) / (float)fp.hashes.size());
     }
     sqlite3_finalize(stmt);
 
