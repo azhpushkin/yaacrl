@@ -18,3 +18,9 @@ TODOs:
 - [ ] separate storage.cpp out of yaacrl.cpp
 - [ ] add mp3 support
 - [ ] optional name of the song on import (gui - cut only filename)
+- [ ] config of fingerprinting 
+- [ ] test audios with different frequencies, find a way to make them work
+- [ ] check disabled code
+- [ ] test performance (there are some improvements for sure)
+- [ ] Add to readme commands to test this out
+- [ ] check licensing :(

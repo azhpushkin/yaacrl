@@ -9,6 +9,22 @@
 #include "spectrogram.h"
 #include "yaacrl.h"
 
+/* I bet you have not expected to see ASCII cat over here:
+
+ ,_     _
+ |\\_,-~/
+ / _  _ |    ,--.
+(  @  @ )   / ,-'
+ \  _T_/-._( (
+ /         `. \
+|         _  \ |
+ \ \ ,  /      |
+  || |-_\__   /
+ ((_/`(____,-'
+*/
+
+
+
 #define CONFIDENCE 2  // at least 2 simult for a match
 #define DB_CON (sqlite3*)db
 #define LOG_ERR(msg) { yaacrl_log_message(LogLevel::ERROR, std::string(msg) + std::string(sqlite3_errmsg(DB_CON))); }
@@ -140,6 +156,8 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     rc = sqlite3_exec(DB_CON, "END TRANSACTION", NULL, NULL, NULL);
     if (rc != SQLITE_OK)
         LOG_ERR("Error commiting transaction: ")
+
+    yaacrl_log_message(LogLevel::INFO, std::string("Successfully fingerprinted") + fp.name);
 }
 
 
