@@ -92,10 +92,22 @@ Storage::Storage(std::string file) {
     }
 
     sql = R"(
+        create table if not exists songs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL
+        )
+    )";
+    rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &zErrMsg);
+    if( rc != SQLITE_OK ){
+        yaacrl_log_message(LogLevel::ERROR, std::string("Error creating songs table"));
+    }
+
+    sql = R"(
         create table if not exists fingerprints (
             hash BLOB NOT NULL,
             offset INT NOT NULL,
-            song TEXT NOT NULL
+            song_id INT NOT NULL,
+            FOREIGN KEY(song_id) REFERENCES songs(id)
         )
     )";
     rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, 0, &zErrMsg);
@@ -130,11 +142,45 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     if (rc != SQLITE_OK)
         LOG_ERR("Cannot begin transaction: ")
 
-
+    // INSERT SONG
     sqlite3_stmt *stmt = NULL;
     rc = sqlite3_prepare(
         DB_CON,
-        "INSERT INTO fingerprints (hash, offset, song) VALUES(?, ?, ?)",
+        "INSERT INTO songs (name) VALUES(?)",
+        -1, &stmt, NULL
+    );
+    if (rc != SQLITE_OK)
+        LOG_ERR("Error preparing song insert: ")
+    
+    sqlite3_bind_text(stmt, 1, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        LOG_ERR("Bad bind to insert: ");
+    }
+    sqlite3_finalize(stmt);
+    
+    
+    stmt = NULL;
+    rc = sqlite3_prepare(
+        DB_CON, "select id from songs where name = ?",
+        -1, &stmt, NULL
+    );
+    sqlite3_bind_text(stmt, 1, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
+    if (rc != SQLITE_OK)
+        LOG_ERR("Error selecting song id: ")
+    
+    sqlite3_step(stmt);
+    int song_id = sqlite3_column_int(stmt, 0);
+    std::cout << "Song ID is " << song_id << std::endl;
+    sqlite3_finalize(stmt);
+    
+    
+    
+    // INSERT FINGERPRINTS
+    stmt = NULL;
+    rc = sqlite3_prepare(
+        DB_CON,
+        "INSERT INTO fingerprints (hash, offset, song_id) VALUES(?, ?, ?)",
         -1, &stmt, NULL
     );
     if (rc != SQLITE_OK)
@@ -143,7 +189,7 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     for (auto const& hash:  fp.hashes) {
         sqlite3_bind_blob(stmt, 1, hash.hash_data, sizeof(hash.hash_data), SQLITE_STATIC);
         sqlite3_bind_int(stmt, 2, hash.offset);
-        sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 3, song_id);
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE) {
             LOG_ERR("Bad bind to insert: ");
@@ -167,8 +213,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     std::string sql = R"(
         create table if not exists ttemp (
             hash BLOB NOT NULL,
-            offset INT NOT NULL,
-            song TEXT NOT NULL
+            offset INT NOT NULL
         );
     )";
     rc = sqlite3_exec(DB_CON, sql.c_str(), NULL, NULL, NULL);
@@ -178,7 +223,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     sqlite3_stmt *stmt = NULL;
     rc = sqlite3_prepare(
         DB_CON,
-        "INSERT INTO ttemp (hash, offset, song) VALUES(?, ?, ?)",
+        "INSERT INTO ttemp (hash, offset) VALUES(?, ?)",
         -1, &stmt, NULL
     );
     if (rc != SQLITE_OK)
@@ -192,7 +237,6 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     for (auto const& hash:  fp.hashes) {
         sqlite3_bind_blob(stmt, 1, hash.hash_data, sizeof(hash.hash_data), SQLITE_STATIC);
         sqlite3_bind_int(stmt, 2, hash.offset);
-        sqlite3_bind_text(stmt, 3, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE) {
             std::cerr << "Insert into temp failed: " << sqlite3_errmsg(DB_CON) << std::endl;
@@ -213,7 +257,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
         R"(
              with matches as (
                 select
-                    fp.song as song,
+                    fp.song_id as song,
                     (fp.offset - ttemp.offset) as offset_diff
                 from fingerprints fp
                 join ttemp on ttemp.hash = fp.hash
@@ -229,7 +273,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
                 order by total desc
 				limit 10
             )
-            select song, sum(total) as total_matches
+            select cast(song as text), sum(total) as total_matches
             from grouped_matches
             group by song
 			order by total_matches desc    

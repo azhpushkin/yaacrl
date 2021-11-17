@@ -8,9 +8,9 @@
 
 #define LOC_BINS 10
 #define LOC_WINDOWS 10
-#define MIN_AMPLITUDE -5
+#define MIN_AMPLITUDE 0
 #define MAX_FAN 20
-#define MAX_WINDOW_DISTANCE 400
+#define MAX_WINDOW_DISTANCE 200
 
 
 bool is_local_maximum(Spectrogram& spec, int window, int bin) {
