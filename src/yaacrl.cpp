@@ -9,6 +9,10 @@
 #include "spectrogram.h"
 #include "yaacrl.h"
 
+#define MINIMP3_IMPLEMENTATION
+#define MINIMP3_FLOAT_OUTPUT
+#include "vendor/minimp3_ex.h"
+
 /* I bet you have not expected to see ASCII cat over here:
 
  ,_     _
@@ -31,6 +35,7 @@
 
 using namespace yaacrl;
 
+// TODO: RAII refactoring needed 
 WAVFile::WAVFile(std::string path_): path(path_), name(path_) {
     yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: ") + path_);
 }
@@ -39,29 +44,29 @@ WAVFile::WAVFile(std::string path_, std::string name_): path(path_), name(name_)
 }
 
 MP3File::MP3File(std::string path_): path(path_), name(path_) {
-    yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
-    throw std::runtime_error("MP3File is not implemented yet!");
+    // yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
+    // throw std::runtime_error("MP3File is not implemented yet!");
 }
 MP3File::MP3File(std::string path_, std::string name_): path(path_), name(name_) {
-    yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
-    throw std::runtime_error("MP3File is not implemented yet!");
+    // yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
+    // throw std::runtime_error("MP3File is not implemented yet!");
 }
 
 
 Fingerprint::Fingerprint(const WAVFile& file) {
     this->name = file.name;
-    this->process(file.path);
+    this->process_wav(file.path);
     yaacrl_log_message(LogLevel::INFO, std::string("Successfully processed ") + file.name);
 }
 
-// TODO: throw exception for mp3 file
+
 Fingerprint::Fingerprint(const MP3File& file) {
     this->name = file.name;
-    this->process(file.path);
+    this->process_mp3(file.path);
     yaacrl_log_message(LogLevel::INFO, std::string("Successfully processed ") + file.name);
 }
 
-void Fingerprint::process(std::string path) {
+void Fingerprint::process_wav(std::string path) {
     AudioFile<float> audioFile;
 
     audioFile.load (path);
@@ -69,6 +74,41 @@ void Fingerprint::process(std::string path) {
     for (int i = 0; i < audioFile.getNumChannels(); i++) {
         std::cout << "found " << audioFile.samples[i].size() << " samples" << std::endl;
         auto spec = gen_spectrogram(audioFile.samples[i]);
+        auto peaks = find_peaks(spec);
+        auto hashes = generate_hashes(peaks);
+
+        this->peaks.reserve(this->peaks.size() + distance(peaks.begin(), peaks.end()));
+        this->peaks.insert(this->peaks.end(), peaks.begin(), peaks.end());
+
+        this->hashes.reserve(this->hashes.size() + distance(hashes.begin(), hashes.end()));
+        this->hashes.insert(this->hashes.end(), hashes.begin(), hashes.end());
+    }
+
+}
+
+
+void Fingerprint::process_mp3(std::string path) {
+    mp3dec_t mp3d;
+    mp3dec_file_info_t info;
+
+    if (mp3dec_load(&mp3d, path.c_str(), &info, NULL, NULL))
+    {
+        // TODO: this looks bad
+        yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
+        throw std::runtime_error("MP3File is not implemented yet!");
+    }
+
+    std::vector<std::vector<float>> channels(info.channels);
+
+    for (auto i = 0; i < info.samples; ) {
+        for (int j = 0; j < info.channels; j++) {
+            channels[j].emplace_back(info.buffer[i++]);
+        }
+    }
+
+    for (int i = 0; i < channels.size(); i++) {
+        std::cout << "found " << channels[i].size() << " samples" << std::endl;
+        auto spec = gen_spectrogram(channels[i]);
         auto peaks = find_peaks(spec);
         auto hashes = generate_hashes(peaks);
 

@@ -34,7 +34,8 @@ public:
     std::vector<Peak> peaks;
     std::vector<Hash> hashes;
 private:
-    void process(std::string path);
+    void process_wav(std::string path);
+    void process_mp3(std::string path);
 };
 
 
