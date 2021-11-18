@@ -8,9 +8,14 @@
 
 #define LOC_BINS 10
 #define LOC_WINDOWS 10
-#define MIN_AMPLITUDE 0
-#define MAX_FAN 20
+#define MIN_AMPLITUDE 5
 #define MAX_WINDOW_DISTANCE 200
+
+// MAX_FAN of 5 gives better results, than bigger values like MAX_FAN=15
+// Probably this is due to unimportance of distant peaks when pairing
+//  and linking only to 5 closes is enough
+// Also, increasing MAX_FAN also increases library size (there is almost linear correlation)
+#define MAX_FAN 5
 
 
 bool is_local_maximum(Spectrogram& spec, int window, int bin) {
