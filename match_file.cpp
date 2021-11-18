@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     auto matches = storage.get_matches(fprint);
     std::cout << "  -> " << " Match results: " <<  std::endl;
     for (auto& pair: matches) {
-        std::cout << "    * " << std::get<0>(pair) << ": " << std::get<1>(pair) * 100 << "%" << std::endl;
+        std::cout << "    * " << std::get<0>(pair).name << ": " << std::get<1>(pair) * 100 << "%" << std::endl;
     }
 
     return 0;

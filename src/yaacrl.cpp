@@ -108,12 +108,14 @@ Storage::~Storage() {
     sqlite3_close(DB_CON);
 }
 
-void Storage::store_fingerprint(Fingerprint&& fp, std::string name) {
-    store_fingerprint(fp, name);
+StoredSong Storage::store_fingerprint(Fingerprint&& fp, std::string name) {
+    return store_fingerprint(fp, name);
 }
 
-void Storage::store_fingerprint(Fingerprint& fp, std::string name) {
+StoredSong Storage::store_fingerprint(Fingerprint& fp, std::string name) {
     int rc;
+    StoredSong stored_song;
+    stored_song.name = name;
 
     // Perform all inserts in a transaction
     rc = sqlite3_exec(DB_CON, "BEGIN TRANSACTION", NULL, NULL, NULL);
@@ -148,8 +150,7 @@ void Storage::store_fingerprint(Fingerprint& fp, std::string name) {
         LOG_ERR("Error selecting song id: ")
     
     sqlite3_step(stmt);
-    int song_id = sqlite3_column_int(stmt, 0);
-    std::cout << "Song ID is " << song_id << std::endl;
+    stored_song.id = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
     
     
@@ -167,7 +168,7 @@ void Storage::store_fingerprint(Fingerprint& fp, std::string name) {
     for (auto const& hash:  fp.hashes) {
         sqlite3_bind_blob(stmt, 1, hash.hash_data, sizeof(hash.hash_data), SQLITE_STATIC);
         sqlite3_bind_int(stmt, 2, hash.offset);
-        sqlite3_bind_int(stmt, 3, song_id);
+        sqlite3_bind_int(stmt, 3, stored_song.id);
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE) {
             LOG_ERR("Bad bind to insert: ");
@@ -182,10 +183,62 @@ void Storage::store_fingerprint(Fingerprint& fp, std::string name) {
         LOG_ERR("Error commiting transaction: ")
 
     yaacrl_log_message(LogLevel::INFO, std::string("Successfully fingerprinted") + name);
+    return stored_song;
 }
 
 
-std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
+void Storage::delete_stored_song(StoredSong song) {
+    int rc;
+    sqlite3_stmt *stmt = NULL;
+
+    rc = sqlite3_prepare(
+        DB_CON, "delete from fingerprints where song_id = ?",
+        -1, &stmt, NULL
+    );
+    sqlite3_bind_int(stmt, 1, song.id);
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE)
+        LOG_ERR("Error deleting from fingerprints: ")
+    sqlite3_finalize(stmt);
+    
+
+
+    rc = sqlite3_prepare(
+        DB_CON, "delete from songs where id = ?",
+        -1, &stmt, NULL
+    );
+    sqlite3_bind_int(stmt, 1, song.id);
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE)
+        LOG_ERR("Error deleting from songs: ")
+
+    sqlite3_finalize(stmt);
+}
+
+StoredSong Storage::rename_stored_song(StoredSong song, std::string new_name) {
+    int rc;
+
+    sqlite3_stmt *stmt = NULL;
+    rc = sqlite3_prepare(
+        DB_CON, "update songs set name = ? where id = ?",
+        -1, &stmt, NULL
+    );
+    if (rc != SQLITE_OK)
+        LOG_ERR("Error preparing songs update : ")
+
+    sqlite3_bind_text(stmt, 1, new_name.c_str(), new_name.size(), SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 2, song.id);
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE)
+        LOG_ERR("Error renaming song: ")
+
+    sqlite3_finalize(stmt);
+
+    song.name = new_name;
+    return song;
+}
+
+std::vector<std::pair<StoredSong, float>> Storage::get_matches(Fingerprint& fp) {
     int rc;
 
     std::string sql = R"(
@@ -229,31 +282,34 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     }
     sqlite3_finalize(stmt);
 
-
+    // TODO: right join probably here
     rc = sqlite3_prepare(
         DB_CON,
         R"(
              with matches as (
                 select
-                    fp.song_id as song,
+                    fp.song_id as song_id,
+                    songs.name as song_name,
                     (fp.offset - ttemp.offset) as offset_diff
                 from fingerprints fp
                 join ttemp on ttemp.hash = fp.hash
+                join songs on fp.song_id = songs.id
                 where offset_diff > 0
             ),
             grouped_matches as (
                 select
-                    song,
+                    song_id,
+                    song_name,
                     offset_diff,
                     count(*) as total
                 from matches
-                group by song, offset_diff
+                group by song_id, offset_diff
                 order by total desc
 				limit 10
             )
-            select cast(song as text), sum(total) as total_matches
+            select song_id, song_name, sum(total) as total_matches
             from grouped_matches
-            group by song
+            group by song_id
 			order by total_matches desc    
         )",
         -1, &stmt, NULL
@@ -262,10 +318,15 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
         LOG_ERR("Error selecting matches: ")
 
     
-    std::map<std::string, float> res;
+    std::vector<std::pair<StoredSong, float>> res;
     while ( sqlite3_step(stmt) == SQLITE_ROW) {
-        std::string song((const char *)sqlite3_column_text(stmt, 0));
-        res[song] = ((float)sqlite3_column_int(stmt, 1) / (float)fp.hashes.size());
+        StoredSong song;
+        song.id = sqlite3_column_int(stmt, 0);
+        song.name = ((const char *)sqlite3_column_text(stmt, 1));
+
+        float confidence = ((float)sqlite3_column_int(stmt, 2) / (float)fp.hashes.size());
+
+        res.emplace_back(std::make_pair(song, confidence));
     }
     sqlite3_finalize(stmt);
 

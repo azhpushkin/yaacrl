@@ -25,3 +25,4 @@ TODOs:
 - [ ] Add to readme commands to test this out
 - [ ] check licensing :(
 - [ ] check how MP3File and WAVFile work when wrong file format passed
+

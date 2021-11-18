@@ -42,14 +42,24 @@ private:
     void process(ChannelSamples samples);
 };
 
+class StoredSong {
+    public:
+        int id;
+        std::string name;
+};
+
 
 class Storage {
 public:
     Storage(std::string filepath);
     ~Storage();
-    void store_fingerprint(Fingerprint&& fp, std::string name);
-    void store_fingerprint(Fingerprint& fp, std::string name);
-    std::map<std::string, float> get_matches(Fingerprint& fp);
+    StoredSong store_fingerprint(Fingerprint&& fp, std::string name);
+    StoredSong store_fingerprint(Fingerprint& fp, std::string name);
+    
+    void delete_stored_song(StoredSong song);
+    StoredSong rename_stored_song(StoredSong song, std::string new_name);
+
+    std::vector<std::pair<StoredSong, float>> get_matches(Fingerprint& fp);
 private:
     void* db;
 };
