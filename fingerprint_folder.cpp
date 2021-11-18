@@ -33,7 +33,6 @@ int main(int argc, char* argv[]) {
     std::vector<yaacrl::StoredSong> songs;
     for(auto& p: fs::directory_iterator(songs_dir)) {
         std::string song_filename = p.path().filename();
-        // std::cout <<   << std::endl;
         auto fprint = yaacrl::Fingerprint(yaacrl::WAVFile(p.path()));
         auto song = storage.store_fingerprint(fprint, p.path());
         songs.emplace_back(song);
@@ -44,6 +43,9 @@ int main(int argc, char* argv[]) {
 
 
     storage.delete_stored_song(songs[1]);
+
+    auto songs_count = storage.list_songs().size();
+    std::cout << "Total songs in DB now: " << songs_count << std::endl;
 
     return 0;
     

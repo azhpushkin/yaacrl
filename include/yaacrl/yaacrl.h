@@ -58,6 +58,7 @@ public:
     
     void delete_stored_song(StoredSong song);
     StoredSong rename_stored_song(StoredSong song, std::string new_name);
+    std::vector<StoredSong> list_songs();
 
     std::vector<std::pair<StoredSong, float>> get_matches(Fingerprint& fp);
 private:

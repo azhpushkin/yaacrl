@@ -187,6 +187,32 @@ StoredSong Storage::store_fingerprint(Fingerprint& fp, std::string name) {
 }
 
 
+std::vector<StoredSong> Storage::list_songs() {
+    int rc;
+    sqlite3_stmt *stmt = NULL;
+
+    rc = sqlite3_prepare(
+        DB_CON,
+        "select id, name from songs order by name",
+        -1, &stmt, NULL
+    );
+    if (rc != SQLITE_OK)
+        LOG_ERR("Error selecting songs: ")
+
+    std::vector<StoredSong> res;
+    
+    while ( sqlite3_step(stmt) == SQLITE_ROW) {
+        StoredSong song;
+        song.id = sqlite3_column_int(stmt, 0);
+        song.name = ((const char *)sqlite3_column_text(stmt, 1));
+
+        res.emplace_back(song);
+    }
+    sqlite3_finalize(stmt);
+    return res;
+}
+
+
 void Storage::delete_stored_song(StoredSong song) {
     int rc;
     sqlite3_stmt *stmt = NULL;
