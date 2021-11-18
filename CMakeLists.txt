@@ -17,6 +17,7 @@ set(VENDOR_SOURCES
     src/vendor/sqlite3.c)
 set(SOURCES
     ${VENDOR_SOURCES}
+    src/files.cpp
     src/yaacrl.cpp
     src/config.cpp
     src/spectrogram.cpp

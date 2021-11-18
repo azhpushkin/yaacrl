@@ -16,7 +16,7 @@ TODOs:
 - [ ] make Storage thread-safe
 - [ ] make recognition more robust (e.g. drop ttemp table)
 - [ ] separate storage.cpp out of yaacrl.cpp
-- [ ] add mp3 support
+- [x] add mp3 support
 - [ ] optional name of the song on import (gui - cut only filename)
 - [ ] config of fingerprinting 
 - [ ] test audios with different frequencies, find a way to make them work
@@ -24,3 +24,4 @@ TODOs:
 - [ ] test performance (there are some improvements for sure)
 - [ ] Add to readme commands to test this out
 - [ ] check licensing :(
+- [ ] check how MP3File and WAVFile work when wrong file format passed

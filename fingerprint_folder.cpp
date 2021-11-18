@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
         std::string song_filename = p.path().filename();
         // std::cout <<   << std::endl;
         auto fprint = yaacrl::Fingerprint(yaacrl::WAVFile(p.path()));
-        storage.store_fingerprint(fprint);
+        storage.store_fingerprint(fprint, p.path());
     }
 
     return 0;

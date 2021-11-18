@@ -12,30 +12,34 @@
 
 namespace yaacrl {
 
-struct WAVFile {
-    WAVFile(std::string path);
-    WAVFile(std::string path, std::string name);
-    std::string path;
-    std::string name;
+typedef std::vector<std::vector<float>> ChannelSamples;
+
+
+class WAVFile {
+    public:
+        std::string path;
+        ChannelSamples samples;
+        
+        WAVFile(std::string path);
 };
 
-struct MP3File {
-    MP3File(std::string path);
-    MP3File(std::string path, std::string name);
-    std::string path;
-    std::string name;
+class MP3File {
+    public:
+        std::string path;
+        ChannelSamples samples;
+       
+        MP3File(std::string path);
 };
+
 
 class Fingerprint {
 public:
     Fingerprint(const WAVFile& file);
     Fingerprint(const MP3File& file);
-    std::string name;
     std::vector<Peak> peaks;
     std::vector<Hash> hashes;
 private:
-    void process_wav(std::string path);
-    void process_mp3(std::string path);
+    void process(ChannelSamples samples);
 };
 
 
@@ -43,8 +47,8 @@ class Storage {
 public:
     Storage(std::string filepath);
     ~Storage();
-    void store_fingerprint(Fingerprint&& fp);
-    void store_fingerprint(Fingerprint& fp);
+    void store_fingerprint(Fingerprint&& fp, std::string name);
+    void store_fingerprint(Fingerprint& fp, std::string name);
     std::map<std::string, float> get_matches(Fingerprint& fp);
 private:
     void* db;

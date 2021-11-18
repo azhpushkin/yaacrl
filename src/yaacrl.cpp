@@ -3,15 +3,14 @@
 #include <iostream>
 
 #include "vendor/sqlite3.h"
-#include "vendor/AudioFile.h"
 
 #include "fingerprint.h"
 #include "spectrogram.h"
 #include "yaacrl.h"
 
-#define MINIMP3_IMPLEMENTATION
-#define MINIMP3_FLOAT_OUTPUT
-#include "vendor/minimp3_ex.h"
+
+using namespace yaacrl;
+
 
 /* I bet you have not expected to see ASCII cat over here:
 
@@ -32,48 +31,22 @@
 #define CONFIDENCE 2  // at least 2 simult for a match
 #define DB_CON (sqlite3*)db
 #define LOG_ERR(msg) { yaacrl_log_message(LogLevel::ERROR, std::string(msg) + std::string(sqlite3_errmsg(DB_CON))); }
-
-using namespace yaacrl;
-
-// TODO: RAII refactoring needed 
-WAVFile::WAVFile(std::string path_): path(path_), name(path_) {
-    yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: ") + path_);
-}
-WAVFile::WAVFile(std::string path_, std::string name_): path(path_), name(name_) {
-    yaacrl_log_message(LogLevel::DEBUG, std::string("Opened WAVFile: ") + path_);
-}
-
-MP3File::MP3File(std::string path_): path(path_), name(path_) {
-    // yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
-    // throw std::runtime_error("MP3File is not implemented yet!");
-}
-MP3File::MP3File(std::string path_, std::string name_): path(path_), name(name_) {
-    // yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
-    // throw std::runtime_error("MP3File is not implemented yet!");
-}
+#define BUILD_FINGERPRINT_FROM_FILE(ClassName) \
+    Fingerprint::Fingerprint(const ClassName& file) { \
+        this->process(file.samples); \
+        yaacrl_log_message(LogLevel::INFO, std::string("Successfully processed ") + file.path); \
+    }
 
 
-Fingerprint::Fingerprint(const WAVFile& file) {
-    this->name = file.name;
-    this->process_wav(file.path);
-    yaacrl_log_message(LogLevel::INFO, std::string("Successfully processed ") + file.name);
-}
+
+BUILD_FINGERPRINT_FROM_FILE(MP3File)
+BUILD_FINGERPRINT_FROM_FILE(WAVFile)
 
 
-Fingerprint::Fingerprint(const MP3File& file) {
-    this->name = file.name;
-    this->process_mp3(file.path);
-    yaacrl_log_message(LogLevel::INFO, std::string("Successfully processed ") + file.name);
-}
-
-void Fingerprint::process_wav(std::string path) {
-    AudioFile<float> audioFile;
-
-    audioFile.load (path);
-
-    for (int i = 0; i < audioFile.getNumChannels(); i++) {
-        std::cout << "found " << audioFile.samples[i].size() << " samples" << std::endl;
-        auto spec = gen_spectrogram(audioFile.samples[i]);
+void Fingerprint::process(ChannelSamples samples) {
+    for (int i = 0; i < samples.size(); i++) {
+        std::cout << "found " << samples[i].size() << " samples" << std::endl;
+        auto spec = gen_spectrogram(samples[i]);
         auto peaks = find_peaks(spec);
         auto hashes = generate_hashes(peaks);
 
@@ -83,43 +56,8 @@ void Fingerprint::process_wav(std::string path) {
         this->hashes.reserve(this->hashes.size() + distance(hashes.begin(), hashes.end()));
         this->hashes.insert(this->hashes.end(), hashes.begin(), hashes.end());
     }
-
 }
 
-
-void Fingerprint::process_mp3(std::string path) {
-    mp3dec_t mp3d;
-    mp3dec_file_info_t info;
-
-    if (mp3dec_load(&mp3d, path.c_str(), &info, NULL, NULL))
-    {
-        // TODO: this looks bad
-        yaacrl_log_message(LogLevel::ERROR, std::string("Opening MP3File is not supported yet!"));
-        throw std::runtime_error("MP3File is not implemented yet!");
-    }
-
-    std::vector<std::vector<float>> channels(info.channels);
-
-    for (auto i = 0; i < info.samples; ) {
-        for (int j = 0; j < info.channels; j++) {
-            channels[j].emplace_back(info.buffer[i++]);
-        }
-    }
-
-    for (int i = 0; i < channels.size(); i++) {
-        std::cout << "found " << channels[i].size() << " samples" << std::endl;
-        auto spec = gen_spectrogram(channels[i]);
-        auto peaks = find_peaks(spec);
-        auto hashes = generate_hashes(peaks);
-
-        this->peaks.reserve(this->peaks.size() + distance(peaks.begin(), peaks.end()));
-        this->peaks.insert(this->peaks.end(), peaks.begin(), peaks.end());
-
-        this->hashes.reserve(this->hashes.size() + distance(hashes.begin(), hashes.end()));
-        this->hashes.insert(this->hashes.end(), hashes.begin(), hashes.end());
-    }
-
-}
 
 Storage::Storage(std::string file) {
     int rc;
@@ -170,11 +108,11 @@ Storage::~Storage() {
     sqlite3_close(DB_CON);
 }
 
-void Storage::store_fingerprint(Fingerprint&& fp) {
-    store_fingerprint(fp);
+void Storage::store_fingerprint(Fingerprint&& fp, std::string name) {
+    store_fingerprint(fp, name);
 }
 
-void Storage::store_fingerprint(Fingerprint& fp) {
+void Storage::store_fingerprint(Fingerprint& fp, std::string name) {
     int rc;
 
     // Perform all inserts in a transaction
@@ -192,7 +130,7 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     if (rc != SQLITE_OK)
         LOG_ERR("Error preparing song insert: ")
     
-    sqlite3_bind_text(stmt, 1, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, name.c_str(), name.size(), SQLITE_STATIC);
     rc = sqlite3_step(stmt);
     if (rc != SQLITE_DONE) {
         LOG_ERR("Bad bind to insert: ");
@@ -205,7 +143,7 @@ void Storage::store_fingerprint(Fingerprint& fp) {
         DB_CON, "select id from songs where name = ?",
         -1, &stmt, NULL
     );
-    sqlite3_bind_text(stmt, 1, fp.name.c_str(), fp.name.size(), SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, name.c_str(), name.size(), SQLITE_STATIC);
     if (rc != SQLITE_OK)
         LOG_ERR("Error selecting song id: ")
     
@@ -243,7 +181,7 @@ void Storage::store_fingerprint(Fingerprint& fp) {
     if (rc != SQLITE_OK)
         LOG_ERR("Error commiting transaction: ")
 
-    yaacrl_log_message(LogLevel::INFO, std::string("Successfully fingerprinted") + fp.name);
+    yaacrl_log_message(LogLevel::INFO, std::string("Successfully fingerprinted") + name);
 }
 
 
@@ -335,7 +273,7 @@ std::map<std::string, float> Storage::get_matches(Fingerprint& fp) {
     if( rc != SQLITE_OK ) {
         LOG_ERR("Error dropping temp:");
     }
-    yaacrl_log_message(LogLevel::INFO, std::string("Matches lookup processed for ") + fp.name);
+    yaacrl_log_message(LogLevel::INFO, std::string("Matches lookup processed"));
 
     return res;
 }
