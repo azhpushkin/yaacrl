@@ -39,6 +39,7 @@ MP3File::MP3File(std::string path_): path(path_) {
             this->samples[j].emplace_back(info.buffer[i++]);
         }
     }
+    free(info.buffer);
 
     yaacrl_log_message(LogLevel::DEBUG, std::string("Loaded MP3File: ") + path);
 }
