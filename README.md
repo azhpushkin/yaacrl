@@ -8,8 +8,13 @@ fingerprints.
 quirks here and there. For instance, there is neither configuration of Storage
 for fingerprints nor any guarantees about Storage format and backwards compatibility.
 
-However, if something is not working for you - don't hesitate to open an issue
-or contact me in any other way. I'm always up to a little chat.
+**NOTE 2**: I've used yaacrl as an example for a few articles on [azhpushkin.com](azhpushkin.com).
+Those articles are referring to the `intro` branch, which is currently outdated.
+However, it still works fine as an example for those articles. Just make sure to use
+`main` if you with to test `yaacrl` in its full power.
+
+If something is not working for you - don't hesitate to open an issue
+or contact me in any other way. I'm always up to a little chat. :D
 
 ## How this works?
 
@@ -87,8 +92,6 @@ CREATE TABLE fingerprints (
 
 CREATE INDEX hash_index on fingerprints(hash);
 ```
-
-
 
 
 
