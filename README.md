@@ -67,9 +67,9 @@ Matching an audio clip
 ```bash
 $ ./yaacrl-test match library.sqlite /path/to/audio.mp3
 [INFO] SQLite database setup completed successfully
-Check "lol.mp3"
+Check "audio.mp3"
 [DEBUG] Loaded MP3File: /path/to/audio.mp3
-[INFO] Fingeprints generated for /home/maqquettex/lol.mp3
+[INFO] Fingeprints generated for /path/to/audio.mp3
 [INFO] Matches lookup processed
   ->  Match results: 
     * song-2.mp3: 20.8%
