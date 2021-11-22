@@ -45,7 +45,6 @@ BUILD_FINGERPRINT_FROM_FILE(WAVFile)
 
 void Fingerprint::process(ChannelSamples samples) {
     for (int i = 0; i < samples.size(); i++) {
-        std::cout << "found " << samples[i].size() << " samples" << std::endl;
         auto spec = gen_spectrogram(samples[i]);
         auto peaks = find_peaks(spec);
         auto hashes = generate_hashes(peaks);

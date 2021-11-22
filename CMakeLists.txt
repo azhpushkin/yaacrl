@@ -39,9 +39,6 @@ target_link_libraries(yaacrl-static INTERFACE pthread)
 
 
 # Test programs target
-add_executable(yaacrl-fp-folder fingerprint_folder.cpp)
-target_link_libraries(yaacrl-fp-folder yaacrl-static)
+add_executable(yaacrl-test test.cpp)
+target_link_libraries(yaacrl-test yaacrl-static)
 
-
-add_executable(yaacrl-match-file match_file.cpp)
-target_link_libraries(yaacrl-match-file yaacrl-static)
