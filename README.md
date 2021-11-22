@@ -1,4 +1,4 @@
-## yaacrl
+## yaacrl - Yet Another Audio Recognition Library
 
 This is a Shazam-like library, aimed to recognize the audiotracks.
 It contains logic that both performs audio fingerprinting and storing+matching of
