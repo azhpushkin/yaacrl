@@ -34,7 +34,7 @@ using namespace yaacrl;
 #define BUILD_FINGERPRINT_FROM_FILE(ClassName) \
     Fingerprint::Fingerprint(const ClassName& file) { \
         this->process(file.samples); \
-        yaacrl_log_message(LogLevel::INFO, std::string("Successfully processed ") + file.path); \
+        yaacrl_log_message(LogLevel::INFO, std::string("Fingeprints generated for ") + file.path); \
     }
 
 
@@ -181,7 +181,7 @@ StoredSong Storage::store_fingerprint(Fingerprint& fp, std::string name) {
     if (rc != SQLITE_OK)
         LOG_ERR("Error commiting transaction: ")
 
-    yaacrl_log_message(LogLevel::INFO, std::string("Successfully fingerprinted") + name);
+    yaacrl_log_message(LogLevel::INFO, std::string("Successfully stored ") + name);
     return stored_song;
 }
 
