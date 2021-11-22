@@ -4,17 +4,17 @@ This is a Shazam-like library, aimed to recognize the audiotracks.
 It contains logic that both performs audio fingerprinting and storing+matching of
 fingerprints.
 
-**NOTE**: I use this projects as a playground, so there are 
+**NOTE** :wrench:: I use this projects as a playground, so there are 
 quirks here and there. For instance, there is neither configuration of Storage
 for fingerprints nor any guarantees about Storage format and backwards compatibility.
 
-**NOTE 2**: I've used yaacrl as an example for a few articles on [azhpushkin.com](azhpushkin.com).
+**NOTE 2** :book:: I've used yaacrl as an example for a few articles on [azhpushkin.com](azhpushkin.com).
 Those articles are referring to the `intro` branch, which is currently outdated.
 However, it still works fine as an example for those articles. Just make sure to use
 `main` if you with to test `yaacrl` in its full power.
 
 If something is not working for you - don't hesitate to open an issue
-or contact me in any other way. I'm always up to a little chat. :D
+or contact me in any other way. I'm always up to a little chat :open_hands:
 
 ## How this works?
 
@@ -42,7 +42,7 @@ you might be as well interested in two related projects:
     can record an audio from the mic with it. Go try it out!
 
 If, for some reason, you are still up to messing with C++ and CMake - 
-there is a `yaacrl-test` target created exactly for this purpose.
+there is a `yaacrl-test` target created exactly for this purpose. :bowtie:
 This target compiles to an executable capable of both fingerprinting and matching a fragment.
 
 Note that only MP3 and WAV are supported now, and I've only tested 44100 sampling frequency
