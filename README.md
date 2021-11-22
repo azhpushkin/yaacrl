@@ -72,7 +72,7 @@ Check "lol.mp3"
 [INFO] Fingeprints generated for /home/maqquettex/lol.mp3
 [INFO] Matches lookup processed
   ->  Match results: 
-    * 006 song-2.mp3: 20.8%
+    * song-2.mp3: 20.8%
 ```
 
 You can also manually browse a database file just as any other SQLite database.
