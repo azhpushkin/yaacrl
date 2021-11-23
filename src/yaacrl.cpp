@@ -263,7 +263,7 @@ StoredSong Storage::rename_stored_song(StoredSong song, std::string new_name) {
     return song;
 }
 
-std::vector<std::pair<StoredSong, float>> Storage::get_matches(Fingerprint& fp) {
+std::vector<std::pair <StoredSong, float> > Storage::get_matches(Fingerprint& fp) {
     int rc;
 
     std::string sql = R"(
@@ -343,7 +343,7 @@ std::vector<std::pair<StoredSong, float>> Storage::get_matches(Fingerprint& fp) 
         LOG_ERR("Error selecting matches: ")
 
     
-    std::vector<std::pair<StoredSong, float>> res;
+    std::vector<std::pair <StoredSong, float> > res;
     while ( sqlite3_step(stmt) == SQLITE_ROW) {
         StoredSong song;
         song.id = sqlite3_column_int(stmt, 0);

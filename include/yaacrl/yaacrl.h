@@ -12,7 +12,7 @@
 
 namespace yaacrl {
 
-typedef std::vector<std::vector<float>> ChannelSamples;
+typedef std::vector<std::vector <float> > ChannelSamples;
 
 
 class WAVFile {
@@ -60,7 +60,7 @@ public:
     StoredSong rename_stored_song(StoredSong song, std::string new_name);
     std::vector<StoredSong> list_songs();
 
-    std::vector<std::pair<StoredSong, float>> get_matches(Fingerprint& fp);
+    std::vector<std::pair <StoredSong, float> > get_matches(Fingerprint& fp);
 private:
     void* db;
 };

@@ -9,6 +9,6 @@
 #define OVERLAP (WINDOW_SIZE / 2)
 
 
-typedef std::vector<std::array<float, BINS_AMOUNT>> Spectrogram;
+typedef std::vector<std::array <float, BINS_AMOUNT> > Spectrogram;
 
 Spectrogram gen_spectrogram(std::vector<float> samples);

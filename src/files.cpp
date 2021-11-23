@@ -34,7 +34,7 @@ MP3File::MP3File(std::string path_): path(path_) {
 
     this->samples.resize(info.channels);
 
-    for (auto i = 0; i < info.samples; ) {
+    for (size_t i = 0; i < info.samples; ) {
         for (int j = 0; j < info.channels; j++) {
             this->samples[j].emplace_back(info.buffer[i++]);
         }

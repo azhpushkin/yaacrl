@@ -42,8 +42,8 @@ bool is_local_maximum(Spectrogram& spec, int window, int bin) {
 
 std::vector<Peak> find_peaks(Spectrogram& spec) {
     std::vector<Peak> peaks;
-    bool* x = new bool[BINS_AMOUNT * spec.size()];
-    std::fill_n(x, BINS_AMOUNT * spec.size(), true);
+    // std::vector<bool> x(BINS_AMOUNT * spec.size());
+    // std::fill_n(x, BINS_AMOUNT * spec.size(), true);
 
     for (int window = 0; window < spec.size(); window++) {
         for (int bin = 0; bin < BINS_AMOUNT; bin++) {
@@ -75,14 +75,13 @@ std::vector<Peak> find_peaks(Spectrogram& spec) {
             }
         }
     }
-    delete x;
     return peaks;
 }
 
 std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
     std::vector<Hash> hashes;
 
-    auto format_key = new int[3];
+    std::vector<int> format_key(3);
     for(int i = 0; i < peaks.size(); i++) {
         int c = 0;
         for (int j = i+1; (j < i+1+MAX_FAN) && j < peaks.size(); j++) {
@@ -95,7 +94,7 @@ std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
             
             Hash new_hash;
             MurmurHash3_x64_128(
-                format_key,
+                format_key.data(),
                 sizeof(int) * 3,
                 0,
                 new_hash.hash_data  // pointer to std::array
@@ -107,7 +106,6 @@ std::vector<Hash> generate_hashes(std::vector<Peak>& peaks) {
             c++;
         }
     }
-    
-    delete format_key;
+
     return hashes;
 }
